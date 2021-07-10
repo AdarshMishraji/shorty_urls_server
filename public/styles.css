@@ -1,8 +1,13 @@
 body {
   display: flex;
   background-color: #e3f2fd;
-  min-width: 620px;
   padding: 25px;
+  margin: 0;
+  padding: 0;
+  height: max-content;
+  flex-direction: column;
+  font-family: Arial, Helvetica, sans-serif;
+  cursor: default;
 }
 
 header {
@@ -11,9 +16,6 @@ header {
   border-bottom: 1px solid black;
   min-width: 675px;
   width: 100%;
-  position: absolute;
-  left: 0;
-  top: 0;
   background-color: #2255ff;
   border-bottom-right-radius: 25px;
   border-bottom-left-radius: 25px;
@@ -30,7 +32,7 @@ h1 {
 
 .mainbox {
   background-color: #2255ff;
-  margin: auto;
+  margin: 50px auto;
   width: 600px;
   border-radius: 50px;
   display: flex;
@@ -103,8 +105,31 @@ h1 {
   border-radius: 20px;
   background-color: #2225ff;
   box-shadow: 0px 5px 25px 5px black;
+  cursor: pointer;
 }
 
 .home_btn:active {
   box-shadow: 0px 5px 10px 0px black;
+}
+
+footer {
+  display: flex;
+  justify-content: center;
+  border-bottom: 1px solid black;
+  min-width: 650px;
+  width: 100vmax;
+  left: 0;
+  bottom: 0;
+  background-color: #2255ff;
+  border-top-right-radius: 25px;
+  border-top-left-radius: 25px;
+  box-shadow: 0px -10px 25px 10px black;
+  padding: 30px 0px;
+  position: fixed;
+}
+
+footer div {
+  font-size: 20px;
+  color: white;
+  margin-left: 50px;
 }
