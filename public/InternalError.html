@@ -1,6 +1,12 @@
 <head>
     <link href="styles.css" rel='stylesheet'>
     <title>Internal Error</title>
+    <link rel="icon" href="logo.png">
+    <script>
+        const onHomeClick=()=>{
+            window.open('https://shorty--urls.herokuapp.com/','_self')
+        }
+    </script>
 </head>
 
 <body>
@@ -12,8 +18,8 @@
             <p>Internal Server Error</p>
             <p>Some error has occured at server side</p>
             <p>Will fixed soon.</p>
-            <div class="home_btn">
-                <a href='#'>Get back to home</a>
+            <div class="home_btn" onclick="onHomeClick()">
+                Get back to home
             </div>
         </div>
     </div>

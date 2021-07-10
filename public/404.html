@@ -2,6 +2,12 @@
     <script src="https://kit.fontawesome.com/4b9ba14b0f.js" crossorigin="anonymous"></script>
     <link href="styles.css" rel='stylesheet'>
     <title>404 | Page not found</title>
+    <link rel="icon" href="logo.png">
+    <script>
+        const onHomeClick=()=>{
+            window.open('https://shorty--urls.herokuapp.com/', '_self')
+        }
+    </script>
 </head>
 
 <body>
@@ -19,8 +25,8 @@
         <div class="msg">
             <p>Page not found</p>
             <p>This page may got deleted or removed.</p>
-            <div class="home_btn">
-                <a href='#'>Get back to home</a>
+            <div class="home_btn" onclick="onHomeClick()">
+                Get back to home
             </div>
         </div>
     </div>
