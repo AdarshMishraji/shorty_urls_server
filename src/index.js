@@ -146,6 +146,7 @@ app.get("/:url", (req, res) => {
                 $push: {
                   from_visited: {
                     ip: data.query,
+                    requested_at: Date.now(),
                     location: {
                       country: data.country,
                       city: data.city,
