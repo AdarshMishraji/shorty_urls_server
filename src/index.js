@@ -139,6 +139,11 @@ app.get("/:url", (req, res) => {
     });
 });
 
+app.all("*", (req, res) => {
+  console.log("User bhand ho gya hai.");
+  res.status(404).sendFile(path.join(__dirname, "../public/404.html"));
+});
+
 app.listen(port, () => {
   console.log("Server running at port : " + port);
 });
