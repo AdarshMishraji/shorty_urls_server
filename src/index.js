@@ -3,6 +3,7 @@ const { MongoClient } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const ipLocator = require("ip-locator");
 const crypto = require("crypto");
 const dotEnv = require("dotenv");
 
@@ -45,13 +46,15 @@ app.post("/generate_short_url", (req, res) => {
             collection(client)
               .insertOne({
                 url,
-                short_url: newEndpoint,
+                short_url: process.env.OWN_URL + newEndpoint,
                 num_of_visits: 0,
                 created_at: Date.now(),
               })
               .then((value) => {
                 console.log("Inserted one url." + JSON.stringify(value.result));
-                res.status(200).json({ short_url: newEndpoint });
+                res
+                  .status(200)
+                  .json({ short_url: process.env.OWN_URL + newEndpoint });
               })
               .catch((e) => {
                 console.log("Error while inserting url.", JSON.stringify(e));
@@ -115,16 +118,51 @@ app.get("/:url", (req, res) => {
   const { url } = req.params;
   console.log(url);
   collection(client)
-    .findOne({ short_url: url })
-    .then((value) => {
+    .findOne({ short_url: process.env.OWN_URL + url })
+    .then(async (value) => {
       if (value) {
         console.log("URL found.", value);
-        collection(client).updateOne(
-          { short_url: url },
-          { $inc: { num_of_visits: 1 } }
-        );
-        res.status(200).redirect(`${value.url}`);
-        return;
+        const ip =
+          req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+        ipLocator.getDomainOrIPDetails(ip, "json", (err, data) => {
+          if (data == "The IP address is part of a reserved range") {
+            console.log(data);
+            collection(client).updateOne(
+              { short_url: process.env.OWN_URL + url },
+              { $inc: { num_of_visits: 1 } }
+            );
+          } else if (err) {
+            console.log("error while fetching location from ip address.");
+            collection(client).updateOne(
+              { short_url: process.env.OWN_URL + url },
+              { $inc: { num_of_visits: 1 } }
+            );
+          } else {
+            console.log("else in iplocator");
+            collection(client).updateOne(
+              { short_url: process.env.OWN_URL + url },
+              {
+                $inc: { num_of_visits: 1 },
+                $push: {
+                  from_visited: {
+                    ip: data.query,
+                    location: {
+                      country: data.country,
+                      city: data.city,
+                      zipCode: data.zip,
+                      lat_long: {
+                        latitude: data.lat,
+                        longitude: data.lon,
+                      },
+                      timezone: data.timezone,
+                    },
+                  },
+                },
+              }
+            );
+          }
+          res.status(200).redirect(`${value.url}`);
+        });
       } else {
         console.log("No url found.");
         res.status(404).sendFile(path.join(__dirname, "../public/404.html"));
