@@ -1,11 +1,18 @@
 const path = require("path");
-const { MongoClient } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const ipLocator = require("ip-locator");
-const crypto = require("crypto");
 const dotEnv = require("dotenv");
+
+const generateShortURL = require("./defaultRoutes/generateShortURL");
+const history = require("./defaultRoutes/history");
+const redirectShortURL = require("./defaultRoutes/redirectShortURL");
+
+const generateShortURL_v2 = require("./v2Routes/generateShortURL");
+const allURLs_v2 = require("./v2Routes/allURLs");
+const urlVisitHistory_v2 = require("./v2Routes/urlVisitHistory");
+const redirectShortURL_v2 = require("./v2Routes/redirectShortURL");
+const routeErrorHandler_v2 = require("./v2Routes/routeErrorHandler");
 
 dotEnv.config();
 const port = process.env.PORT || 4000;
@@ -15,168 +22,15 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "../public/")));
 
-// mongodb configured.
-const mongoURI = `mongodb+srv://${process.env.MONGO_USER_NAME}:${process.env.MONGO_PASSWORD}@${process.env.MONGO_CLUSTER_NAME}.mongodb.net/<dbname>?retryWrites=true&w=majority`;
-const client = new MongoClient(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-client.connect();
-
-const collection = (client) =>
-  client.db("shorty_urls").collection("shorten_urls");
-
-app.post("/generate_short_url", (req, res) => {
-  const { authorization } = req.headers;
-  if (authorization === process.env.AUTHORIZATION) {
-    const { url } = req.body;
-    const newEndpoint = crypto.randomBytes(4).toString("hex");
-    if (url) {
-      collection(client)
-        .findOne({ url })
-        .then((value) => {
-          if (value) {
-            console.log("URL already exists.");
-            res.status(409).json({
-              short_url: value.short_url,
-              error: "URL already exists.",
-            });
-            return;
-          } else {
-            collection(client)
-              .insertOne({
-                url,
-                short_url: process.env.OWN_URL + newEndpoint,
-                num_of_visits: 0,
-                created_at: Date.now(),
-              })
-              .then((value) => {
-                console.log("Inserted one url." + JSON.stringify(value.result));
-                res
-                  .status(200)
-                  .json({ short_url: process.env.OWN_URL + newEndpoint });
-              })
-              .catch((e) => {
-                console.log("Error while inserting url.", JSON.stringify(e));
-                res.status(500).json({ error: "Internal Error." });
-              });
-            return;
-          }
-        });
-    } else {
-      res.status(422).json({ error: "Not accepted empty url." });
-    }
-  } else {
-    res.status(422).json({ error: "Authorization Failed." });
-  }
-});
-
-app.get("/history", (req, res) => {
-  const { authorization } = req.headers;
-  if (authorization === process.env.AUTHORIZATION) {
-    collection(client)
-      .find({})
-      .toArray()
-      .then((value) => {
-        res.status(200).json({
-          history: value,
-        });
-      })
-      .catch((e) => {
-        console.log("Error while fetching history", e);
-        res.send(500).json({ error: "Error while fetching history" });
-      });
-  } else {
-    res.status(422).json({ error: "Authorization Failed." });
-  }
-});
-
-app.get("/history/:limit", (req, res) => {
-  const { authorization } = req.headers;
-  if (authorization === process.env.AUTHORIZATION) {
-    const { limit } = req.params;
-    console.log(limit);
-    collection(client)
-      .find({})
-      .limit(parseInt(limit))
-      .toArray()
-      .then((value) => {
-        res.status(200).json({
-          history: value,
-        });
-      })
-      .catch((e) => {
-        console.log("Error while fetching history", e);
-        res.send(500).json({ error: "Error while fetching history" });
-      });
-  } else {
-    res.status(422).json({ error: "Authorization Failed." });
-  }
-});
-
-app.get("/:url", (req, res) => {
-  const { url } = req.params;
-  console.log(url);
-  collection(client)
-    .findOne({ short_url: process.env.OWN_URL + url })
-    .then(async (value) => {
-      if (value) {
-        console.log("URL found.", value);
-        const ip =
-          req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-        ipLocator.getDomainOrIPDetails(ip, "json", (err, data) => {
-          if (data == "The IP address is part of a reserved range") {
-            console.log(data);
-            collection(client).updateOne(
-              { short_url: process.env.OWN_URL + url },
-              { $inc: { num_of_visits: 1 } }
-            );
-          } else if (err) {
-            console.log("error while fetching location from ip address.");
-            collection(client).updateOne(
-              { short_url: process.env.OWN_URL + url },
-              { $inc: { num_of_visits: 1 } }
-            );
-          } else {
-            console.log("else in iplocator");
-            collection(client).updateOne(
-              { short_url: process.env.OWN_URL + url },
-              {
-                $inc: { num_of_visits: 1 },
-                $push: {
-                  from_visited: {
-                    ip: data.query,
-                    requested_at: Date.now(),
-                    location: {
-                      country: data.country,
-                      city: data.city,
-                      zipCode: data.zip,
-                      lat_long: {
-                        latitude: data.lat,
-                        longitude: data.lon,
-                      },
-                      timezone: data.timezone,
-                    },
-                  },
-                },
-              }
-            );
-          }
-          res.status(200).redirect(`${value.url}`);
-        });
-      } else {
-        console.log("No url found.");
-        res.status(404).sendFile(path.join(__dirname, "../public/404.html"));
-        return;
-      }
-    })
-    .catch((e) => {
-      console.log("Error while fetching url.", JSON.stringify(e));
-      res
-        .status(500)
-        .sendFile(path.join(__dirname, "../public/InternalError.html"));
-    });
-});
+app.use(
+  "/v2",
+  generateShortURL_v2,
+  allURLs_v2,
+  urlVisitHistory_v2,
+  redirectShortURL_v2,
+  routeErrorHandler_v2
+);
+app.use(generateShortURL, history, redirectShortURL);
 
 app.all("*", (req, res) => {
   console.log("User bhand ho gya hai.");
