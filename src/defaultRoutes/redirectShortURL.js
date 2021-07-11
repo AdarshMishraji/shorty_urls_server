@@ -29,7 +29,7 @@ app.get("/:url", (req, res) => {
                 client
                   .collection("shorten_urls")
                   .updateOne(
-                    { url: process.env.OWN_URL_DEFAULT + url },
+                    { short_url: value.short_url },
                     {
                       $inc: { num_of_visits: 1 },
                       $push: {
@@ -49,7 +49,7 @@ app.get("/:url", (req, res) => {
                 client
                   .collection("shorten_urls")
                   .updateOne(
-                    { url: process.env.OWN_URL_DEFAULT + url },
+                    { short_url: value.short_url },
                     {
                       $inc: { num_of_visits: 1 },
                       $push: {
