@@ -7,35 +7,35 @@ dotEnv.config();
 const app = express.Router();
 
 app.get("/allURLs", (req, res) => {
-  const { authorization } = req.headers;
-  if (authorization === process.env.AUTHORIZATION) {
-    const { limit } = req.query;
-    console.log(limit);
-    connectToMongoDBServer("shorty_urls", (error, client) => {
-      if (client) {
-        client
-          .collection("shorten_urls_v2")
-          .find({})
-          .limit(limit ? parseInt(limit) : Number.MAX_SAFE_INTEGER)
-          .toArray()
-          .then((value) => {
-            res.status(200).json({
-              history: value,
-            });
-          })
-          .catch((e) => {
-            console.log("Error while fetching history", e);
-            res.send(500).json({ error: "Error while fetching history" });
-          });
-        if (error) {
-          console.log("Error in connecting DB.", error);
-          res.status(500).json({ error: "Internal Error." });
-        }
-      }
-    });
-  } else {
-    res.status(401).json({ error: "Authorization Failed." });
-  }
+    const { authorization } = req.headers;
+    if (authorization === process.env.AUTHORIZATION) {
+        const { limit } = req.query;
+        console.log(limit);
+        connectToMongoDBServer("shorty_urls", (error, client) => {
+            if (client) {
+                client
+                    .collection("shorten_urls_v2")
+                    .find({})
+                    .limit(limit ? parseInt(limit) : Number.MAX_SAFE_INTEGER)
+                    .toArray()
+                    .then((value) => {
+                        res.status(200).json({
+                            history: value,
+                        });
+                    })
+                    .catch((e) => {
+                        console.log("Error while fetching history", e);
+                        res.send(500).json({ error: "Error while fetching history" });
+                    });
+                if (error) {
+                    console.log("Error in connecting DB.", error);
+                    res.status(500).json({ error: "Internal Error." });
+                }
+            }
+        });
+    } else {
+        res.status(401).json({ error: "Authorization Failed." });
+    }
 });
 
 module.exports = app;
