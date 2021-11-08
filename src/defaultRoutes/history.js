@@ -73,16 +73,17 @@ const filterWRTMonths = (data) => {
             12: "December",
         };
         const res = {};
-        if (data) {
-            const prevMonth = data[0].requested_at.substr(5, 2);
-            for (let i = 0; i < data.length; i++) {
-                const currMonth = data[i].requested_at.substr(5, 2);
+        for (let i = 0; i < data.length; i++) {
+            let prevMonth = parseInt(data[i].from_visited[0].requested_at.substr(5, 2));
+            for (let j = 0; j < data[i].from_visited.length; j++) {
+                const currMonth = parseInt(data[i].from_visited[j].requested_at.substr(5, 2));
                 if (prevMonth <= currMonth) {
                     if (res[noMonths[currMonth]]) {
                         res[noMonths[currMonth]] += 1;
                     } else {
                         res[noMonths[currMonth]] = 1;
                     }
+                    prevMonth = currMonth;
                 } else {
                     break;
                 }
@@ -120,7 +121,7 @@ app.get("/meta", (req, res) => {
                                     .toArray()
                                     .then((result) => {
                                         const p1 = calculateTotalClicks(result);
-                                        const p2 = filterWRTMonths(result?.from_visited);
+                                        const p2 = filterWRTMonths(result);
                                         Promise.all([p1, p2])
                                             .then((response) => {
                                                 const [res1, res2] = response;
