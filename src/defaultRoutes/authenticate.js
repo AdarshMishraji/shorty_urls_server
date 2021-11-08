@@ -35,6 +35,9 @@ app.post("/authenticate", (req, res) => {
                                     .insertOne({
                                         uid,
                                         email: user.email,
+                                        name: user.name,
+                                        joined_at: new Date().toISOString(),
+                                        profile_img: user.photoURL,
                                     })
                                     .then(() => {
                                         const new_token = jwt.sign({ uid }, process.env.SECRET);

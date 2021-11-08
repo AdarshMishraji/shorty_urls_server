@@ -9,13 +9,12 @@ dotEnv.config();
 
 const app = express();
 
-app.post("/generate_short_url", (req, res) => {
+app.post("/generate_short_url", async (req, res) => {
     const { authorization, accesstoken } = req.headers;
     if (authorization === process.env.AUTHORIZATION) {
         const { url } = req.body;
         if (accesstoken) {
             const user = VerifyAndDecodeJWT(accesstoken);
-            const newEndpoint = crypto.randomBytes(4).toString("hex");
             if (url) {
                 if (user) {
                     connectToMongoDBServer("shorty_urls", (error, client) => {
@@ -37,6 +36,7 @@ app.post("/generate_short_url", (req, res) => {
                                                     });
                                                     return;
                                                 } else {
+                                                    const newEndpoint = crypto.randomBytes(4).toString("hex");
                                                     const short_url = process.env.OWN_URL_DEFAULT + newEndpoint;
                                                     client
                                                         .collection("shorten_urls")
@@ -44,7 +44,7 @@ app.post("/generate_short_url", (req, res) => {
                                                             url,
                                                             short_url,
                                                             num_of_visits: 0,
-                                                            created_at: Date.now(),
+                                                            created_at: new Date().toISOString(),
                                                             uid: user.uid,
                                                         })
                                                         .then((value) => {
