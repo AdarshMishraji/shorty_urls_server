@@ -56,7 +56,7 @@ app.get("/history", (req, res) => {
     }
 });
 
-const filterWRTMonths = (data) => {
+const filterWRTYearsAndMonths = (data) => {
     return new Promise((resolve, reject) => {
         const noMonths = {
             1: "January",
@@ -74,19 +74,15 @@ const filterWRTMonths = (data) => {
         };
         const res = {};
         for (let i = 0; i < data.length; i++) {
-            let prevMonth = parseInt(data[i].from_visited[0].requested_at.substr(5, 2));
             for (let j = 0; j < data[i].from_visited.length; j++) {
                 const currMonth = parseInt(data[i].from_visited[j].requested_at.substr(5, 2));
-                if (prevMonth <= currMonth) {
-                    if (res[noMonths[currMonth]]) {
-                        res[noMonths[currMonth]] += 1;
-                    } else {
-                        res[noMonths[currMonth]] = 1;
-                    }
-                    prevMonth = currMonth;
+                const currYear = parseInt(data[i].from_visited[j].requested_at.substr(0, 4));
+                if (res[currYear] && res[currYear][noMonths[currMonth]]) {
+                    res[currYear][noMonths[currMonth]] += 1;
                 } else {
-                    break;
+                    res[currYear] = { [noMonths[currMonth]]: 1 };
                 }
+                prevMonth = currMonth;
             }
         }
         resolve(res);
@@ -121,7 +117,7 @@ app.get("/meta", (req, res) => {
                                     .toArray()
                                     .then((result) => {
                                         const p1 = calculateTotalClicks(result);
-                                        const p2 = filterWRTMonths(result);
+                                        const p2 = filterWRTYearsAndMonths(result);
                                         Promise.all([p1, p2])
                                             .then((response) => {
                                                 const [res1, res2] = response;
