@@ -72,20 +72,40 @@ const filterWRTYearsAndMonths = (data) => {
             11: "November",
             12: "December",
         };
-        const res = {};
+        const res1 = {};
+        const res2 = {};
         for (let i = 0; i < data.length; i++) {
-            for (let j = 0; j < data[i].from_visited.length; j++) {
-                const currMonth = parseInt(data[i].from_visited[j].requested_at.substr(5, 2));
-                const currYear = parseInt(data[i].from_visited[j].requested_at.substr(0, 4));
-                if (res[currYear] && res[currYear][noMonths[currMonth]]) {
-                    res[currYear][noMonths[currMonth]] += 1;
+            const month = data[i].created_at.substr(5, 2);
+            const year = data[i].created_at.substr(0, 4);
+            if (res2[year]) {
+                res2[year].count += 1;
+                if (res2[year][noMonths[month]]) {
+                    res2[year][noMonths[month]].count += 1;
                 } else {
-                    res[currYear] = { [noMonths[currMonth]]: 1 };
+                    res2[year][noMonths[month]] = { count: 1 };
+                }
+            } else {
+                res2[year] = { count: 1, [noMonths[month]]: { count: 1 } };
+            }
+            for (let j = 0; j < data[i].from_visited.length; j++) {
+                const currMonth = data[i].from_visited[j].requested_at.substr(5, 2);
+                const currYear = data[i].from_visited[j].requested_at.substr(0, 4);
+                const currDate = data[i].from_visited[j].requested_at.substr(8, 2);
+                if (res1[currYear] && res1[currYear][noMonths[currMonth]]) {
+                    res1[currYear].count += 1;
+                    res1[currYear][noMonths[currMonth]].count += 1;
+                    if (res1[currYear][noMonths[currMonth]][currDate]) {
+                        res1[currYear][noMonths[currMonth]][currDate] += 1;
+                    } else {
+                        res1[currYear][noMonths[currMonth]] = { ...res1[currYear][noMonths[currMonth]], [currDate]: 1 };
+                    }
+                } else {
+                    res1[currYear] = { count: 1, [noMonths[currMonth]]: { count: 1, [currDate]: 1 } };
                 }
                 prevMonth = currMonth;
             }
         }
-        resolve(res);
+        resolve([res1, res2]);
     });
 };
 
@@ -101,21 +121,23 @@ const calculateTotalClicks = (data) => {
 
 app.get("/meta", (req, res) => {
     const { authorization, accesstoken } = req.headers;
+    const { withoutAuth } = req.query;
     if (authorization === process.env.AUTHORIZATION) {
-        if (accesstoken) {
-            const user = VerifyAndDecodeJWT(accesstoken);
+        if (withoutAuth || accesstoken) {
+            const user = withoutAuth || VerifyAndDecodeJWT(accesstoken);
             connectToMongoDBServer("shorty_urls", (error, client) => {
                 if (client) {
                     client
                         .collection("users")
                         .findOne({ uid: user.uid })
                         .then((value) => {
-                            if (value) {
+                            if (withoutAuth || value) {
                                 client
                                     .collection("shorten_urls")
-                                    .find({ uid: user.uid })
+                                    .find(withoutAuth ? null : { uid: user.uid })
                                     .toArray()
                                     .then((result) => {
+                                        console.log(result);
                                         const p1 = calculateTotalClicks(result);
                                         const p2 = filterWRTYearsAndMonths(result);
                                         Promise.all([p1, p2])
@@ -124,7 +146,8 @@ app.get("/meta", (req, res) => {
                                                 res.status(200).json({
                                                     allLinks: result.length,
                                                     allClicks: res1,
-                                                    monthlyClicks: res2,
+                                                    clicks: res2[0],
+                                                    linksAdded: res2[1],
                                                 });
                                             })
                                             .catch((e) => {
