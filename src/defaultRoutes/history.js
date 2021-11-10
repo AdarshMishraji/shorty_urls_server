@@ -137,7 +137,6 @@ app.get("/meta", (req, res) => {
                                     .find(withoutAuth ? null : { uid: user.uid })
                                     .toArray()
                                     .then((result) => {
-                                        console.log(result);
                                         const p1 = calculateTotalClicks(result);
                                         const p2 = filterWRTYearsAndMonths(result);
                                         Promise.all([p1, p2])

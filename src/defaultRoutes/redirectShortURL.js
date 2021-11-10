@@ -4,6 +4,7 @@ const ipLocator = require("ip-locator");
 const dotEnv = require("dotenv");
 
 const connectToMongoDBServer = require("../mongoDBConfig");
+const { getDeviceType } = require("../helpers");
 
 dotEnv.config();
 const app = express();
@@ -12,6 +13,7 @@ app.use(express.static(path.join(__dirname, "../../public/")));
 
 app.get("/:url", (req, res) => {
     const { url } = req.params;
+    const device = getDeviceType(req.header("user-agent"));
     console.log(url);
     connectToMongoDBServer("shorty_urls", (error, client) => {
         if (client) {
@@ -34,6 +36,7 @@ app.get("/:url", (req, res) => {
                                             $push: {
                                                 from_visited: {
                                                     ip: "XXX.XXX.XXX.XXX",
+                                                    device,
                                                     requested_at: new Date().toISOString(),
                                                     location: null,
                                                 },
@@ -54,6 +57,7 @@ app.get("/:url", (req, res) => {
                                             $push: {
                                                 from_visited: {
                                                     ip: data.query,
+                                                    device,
                                                     requested_at: new Date().toISOString(),
                                                     location: {
                                                         country: data.country,
