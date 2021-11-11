@@ -7,7 +7,7 @@ const { v4: uuidv4 } = require("uuid");
 
 dotEnv.config();
 
-const app = express();
+const app = express.Router();
 
 app.post("/authenticate", (req, res) => {
     const { authorization } = req.headers;

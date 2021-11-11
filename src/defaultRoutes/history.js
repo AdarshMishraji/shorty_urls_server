@@ -1,11 +1,11 @@
 const express = require("express");
 const dotEnv = require("dotenv");
 const connectToMongoDBServer = require("../mongoDBConfig");
-const { VerifyAndDecodeJWT } = require("../helpers");
+const { VerifyAndDecodeJWT, getUserData } = require("../helpers");
 
 dotEnv.config();
 
-const app = express();
+const app = express.Router();
 
 app.get("/history", (req, res) => {
     const { authorization, accesstoken } = req.headers;
@@ -16,29 +16,26 @@ app.get("/history", (req, res) => {
             if (user) {
                 connectToMongoDBServer("shorty_urls", (error, client) => {
                     if (client) {
-                        client
-                            .collection("users")
-                            .findOne({ uid: user.uid })
-                            .then((value) => {
-                                if (value) {
-                                    client
-                                        .collection("shorten_urls")
-                                        .find({ uid: user.uid })
-                                        .limit(limit ? parseInt(limit) : Number.MAX_SAFE_INTEGER)
-                                        .toArray()
-                                        .then((value) => {
-                                            res.status(200).json({
-                                                history: value,
-                                            });
-                                        })
-                                        .catch((e) => {
-                                            console.log("Error while fetching history", e);
-                                            res.send(500).json({ error: "Error while fetching history" });
+                        getUserData(client, user.uid).then((value) => {
+                            if (value) {
+                                client
+                                    .collection("shorten_urls")
+                                    .find({ uid: user.uid })
+                                    .limit(limit ? parseInt(limit) : Number.MAX_SAFE_INTEGER)
+                                    .toArray()
+                                    .then((value) => {
+                                        res.status(200).json({
+                                            history: value,
                                         });
-                                } else {
-                                    res.status(400).json({ error: "Invalid User." });
-                                }
-                            });
+                                    })
+                                    .catch((e) => {
+                                        console.log("Error while fetching history", e);
+                                        res.send(500).json({ error: "Error while fetching history" });
+                                    });
+                            } else {
+                                res.status(400).json({ error: "Invalid User." });
+                            }
+                        });
                     }
                     if (error) {
                         console.log("Error in connecting DB.", error);
@@ -127,40 +124,37 @@ app.get("/meta", (req, res) => {
             const user = withoutAuth || VerifyAndDecodeJWT(accesstoken);
             connectToMongoDBServer("shorty_urls", (error, client) => {
                 if (client) {
-                    client
-                        .collection("users")
-                        .findOne({ uid: user.uid })
-                        .then((value) => {
-                            if (withoutAuth || value) {
-                                client
-                                    .collection("shorten_urls")
-                                    .find(withoutAuth ? null : { uid: user.uid })
-                                    .toArray()
-                                    .then((result) => {
-                                        const p1 = calculateTotalClicks(result);
-                                        const p2 = filterWRTYearsAndMonths(result);
-                                        Promise.all([p1, p2])
-                                            .then((response) => {
-                                                const [res1, res2] = response;
-                                                res.status(200).json({
-                                                    allLinks: result.length,
-                                                    allClicks: res1,
-                                                    clicks: res2[0],
-                                                    linksAdded: res2[1],
-                                                });
-                                            })
-                                            .catch((e) => {
-                                                console.log(e);
-                                                res.status(500).json({ err: "Internal Error" });
+                    getUserData(client, user.uid).then((value) => {
+                        if (withoutAuth || value) {
+                            client
+                                .collection("shorten_urls")
+                                .find(withoutAuth ? null : { uid: user.uid })
+                                .toArray()
+                                .then((result) => {
+                                    const p1 = calculateTotalClicks(result);
+                                    const p2 = filterWRTYearsAndMonths(result);
+                                    Promise.all([p1, p2])
+                                        .then((response) => {
+                                            const [res1, res2] = response;
+                                            res.status(200).json({
+                                                allLinks: result.length,
+                                                allClicks: res1,
+                                                clicks: res2[0],
+                                                linksAdded: res2[1],
                                             });
-                                    })
-                                    .catch((e) => {
-                                        res.send(e);
-                                    });
-                            } else {
-                                res.status(400).json({ error: "Invalid User." });
-                            }
-                        });
+                                        })
+                                        .catch((e) => {
+                                            console.log(e);
+                                            res.status(500).json({ err: "Internal Error" });
+                                        });
+                                })
+                                .catch((e) => {
+                                    res.send(e);
+                                });
+                        } else {
+                            res.status(400).json({ error: "Invalid User." });
+                        }
+                    });
                 }
                 if (error) {
                     console.log("Error in connecting DB.", error);

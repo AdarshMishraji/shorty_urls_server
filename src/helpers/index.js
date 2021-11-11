@@ -16,3 +16,7 @@ exports.getDeviceType = (device) => {
     if (device.includes("Android", 12) || device.includes("iPhone", 12)) return { type: "Mobile", possibility: ["Android", "iPhone"] };
     else return { type: "Desktop", possibility: ["Windows", "Macintosh", "Linux"] };
 };
+
+exports.getUserData = (client, uid) => {
+    return client.collection("users").findOne({ uid: uid });
+};
