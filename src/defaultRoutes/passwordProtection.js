@@ -2,6 +2,7 @@ const express = require("express");
 const dotEnv = require("dotenv");
 const bcrypt = require("bcrypt");
 const { aesDecryptData, updateClick } = require("../helpers");
+const connectToMongoDBServer = require("../mongoDBConfig");
 
 dotEnv.config();
 
@@ -17,11 +18,18 @@ app.post("/password_for_protected_site", (req, res) => {
                 console.log(url, auth, actual_password);
                 if (auth === process.env.AUTHORIZATION) {
                     if (bcrypt.compareSync(password, actual_password)) {
-                        updateClick(client, ip, value.short_url, req.header("user-agent"))
-                            .then(() => es.status(200).send("OK"))
-                            .catch((e) => {
-                                res.status(500).send("Internal Error");
-                            });
+                        connectToMongoDBServer("shorty_urls", (error, client) => {
+                            if (client) {
+                                const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+                                updateClick(client, ip, url, req.header("user-agent"))
+                                    .then(() => res.status(200).send("OK"))
+                                    .catch((e) => {
+                                        res.status(500).send("Internal Error");
+                                    });
+                            } else {
+                                return res.status(500).json({ error: "Internal Error." });
+                            }
+                        });
                     } else {
                         return res.status(401).send({ error: "Wrong Password" });
                     }

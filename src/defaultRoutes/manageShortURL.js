@@ -100,7 +100,7 @@ app.delete("/delete_url", async (req, res) => {
                                 .collection("shorten_urls")
                                 .deleteOne({ _id: ObjectID(urlID), uid: user.uid })
                                 .then((value) => {
-                                    if (value.deleteCount >= 0) {
+                                    if (value.deleteCount > 0) {
                                         return res.status(200).send({ message: "OK" });
                                     } else {
                                         return res.status(404).send({ error: "URL not found" });
@@ -144,7 +144,7 @@ app.patch("/update_url_status", (req, res) => {
                                 .collection("shorten_urls")
                                 .updateOne({ _id: ObjectID(urlID), uid: user.uid }, { $set: { is_active: status } })
                                 .then((value) => {
-                                    if (value.modifiedCount >= 0) {
+                                    if (value.modifiedCount > 0) {
                                         return res.status(200).send({ message: "OK" });
                                     } else {
                                         return res.status(404).send({ error: "URL not found" });
@@ -188,7 +188,7 @@ app.patch("/set_expiration_time", (req, res) => {
                                 .collection("shorten_urls")
                                 .updateOne({ _id: ObjectID(urlID), uid: user.uid }, { $set: { expired_at } })
                                 .then((value) => {
-                                    if (value.modifiedCount >= 0) {
+                                    if (value.modifiedCount > 0) {
                                         return res.status(200).send({ message: "OK" });
                                     } else {
                                         return res.status(404).send({ error: "URL not found" });
@@ -237,7 +237,7 @@ app.patch("/update_password", (req, res) => {
                                 )
                                 .then((value) => {
                                     console.log(value);
-                                    if (value.modifiedCount >= 0) {
+                                    if (value.modifiedCount > 0) {
                                         return res.status(200).send({ message: "OK" });
                                     } else {
                                         return res.status(404).send({ error: "URL not found" });
@@ -281,7 +281,7 @@ app.patch("/remove_password", (req, res) => {
                                 .collection("shorten_urls")
                                 .updateOne({ _id: ObjectID(urlID), uid: user.uid }, { $set: { protection: {} } })
                                 .then((value) => {
-                                    if (value.modifiedCount >= 0) {
+                                    if (value.modifiedCount > 0) {
                                         return res.status(200).send({ message: "OK" });
                                     } else {
                                         return res.status(404).send({ error: "URL not found" });
