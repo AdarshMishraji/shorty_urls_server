@@ -63,7 +63,7 @@ app.post("/authenticate", (req, res) => {
                 }
             });
         } else {
-            res.status(401).json({ error: "Authorization Failed." });
+            res.status(401).json({ error: "Invalid Access." });
         }
     } else {
         res.status(401).json({ error: "Authorization Failed." });

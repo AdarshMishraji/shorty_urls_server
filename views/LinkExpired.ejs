@@ -1,6 +1,6 @@
 <head>
     <link href="styles.css" rel="stylesheet" />
-    <title>Internal Error</title>
+    <title>Expired Link</title>
     <link rel="icon" href="logo.png" />
     <script>
         const onHomeClick = () => {
@@ -13,8 +13,7 @@
     <%- include('partials/header.ejs') %>
     <div class="mainbox">
         <div class="msg">
-            <p>Internal Server Error</p>
-            <p>Some error has occured at server side</p>
+            <p><%= message %></p>
             <div class="home_btn" onclick="onHomeClick()">Go to home</div>
         </div>
     </div>

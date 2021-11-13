@@ -1,5 +1,6 @@
 const express = require("express");
 const dotEnv = require("dotenv");
+var ObjectID = require("mongodb").ObjectID;
 const connectToMongoDBServer = require("../mongoDBConfig");
 const { VerifyAndDecodeJWT, getUserData } = require("../helpers");
 
@@ -7,7 +8,7 @@ dotEnv.config();
 
 const app = express.Router();
 
-app.get("/history", (req, res) => {
+app.get("/urls", (req, res) => {
     const { authorization, accesstoken } = req.headers;
     if (authorization === process.env.AUTHORIZATION) {
         const { limit } = req.query;
@@ -16,26 +17,20 @@ app.get("/history", (req, res) => {
             if (user) {
                 connectToMongoDBServer("shorty_urls", (error, client) => {
                     if (client) {
-                        getUserData(client, user.uid).then((value) => {
-                            if (value) {
-                                client
-                                    .collection("shorten_urls")
-                                    .find({ uid: user.uid })
-                                    .limit(limit ? parseInt(limit) : Number.MAX_SAFE_INTEGER)
-                                    .toArray()
-                                    .then((value) => {
-                                        res.status(200).json({
-                                            history: value,
-                                        });
-                                    })
-                                    .catch((e) => {
-                                        console.log("Error while fetching history", e);
-                                        res.send(500).json({ error: "Error while fetching history" });
-                                    });
-                            } else {
-                                res.status(400).json({ error: "Invalid User." });
-                            }
-                        });
+                        client
+                            .collection("shorten_urls")
+                            .find({ uid: user.uid })
+                            .limit(limit ? parseInt(limit) : Number.MAX_SAFE_INTEGER)
+                            .toArray()
+                            .then((value) => {
+                                res.status(200).json({
+                                    urls: value,
+                                });
+                            })
+                            .catch((e) => {
+                                console.log("Error while fetching history", e);
+                                res.send(500).json({ error: "Error while fetching history" });
+                            });
                     }
                     if (error) {
                         console.log("Error in connecting DB.", error);
@@ -49,7 +44,42 @@ app.get("/history", (req, res) => {
             res.status(401).json({ error: "Authorization Failed." });
         }
     } else {
-        res.status(401).json({ error: "Authorization Failed." });
+        res.status(401).json({ error: "Invalid Access." });
+    }
+});
+
+app.get("/url/:id", (req, res) => {
+    const { authorization, accesstoken } = req.headers;
+    if (authorization === process.env.AUTHORIZATION) {
+        const { limit } = req.query;
+        const { urlID } = req.params;
+        if (accesstoken) {
+            const user = VerifyAndDecodeJWT(accesstoken);
+            if (user) {
+                connectToMongoDBServer("shorty_urls", (error, client) => {
+                    if (client) {
+                        client
+                            .collection("shorten_urls")
+                            .find({ uid: user.uid, _id: ObjectID(urlID) })
+                            .toArray()
+                            .then((value) => {
+                                return res.status(200).json(value);
+                            })
+                            .catch((err) => {
+                                return res.status();
+                            });
+                    }
+                    if (error) {
+                        console.log("Error in connecting DB.", error);
+                        res.status(500).json({ error: "Internal Error." });
+                    }
+                });
+            } else {
+                res.status(401).json({ error: "Authorization Failed." });
+            }
+        } else {
+            res.status(401).json({ error: "Invalid Access." });
+        }
     }
 });
 
@@ -124,37 +154,33 @@ app.get("/meta", (req, res) => {
             const user = withoutAuth || VerifyAndDecodeJWT(accesstoken);
             connectToMongoDBServer("shorty_urls", (error, client) => {
                 if (client) {
-                    getUserData(client, user.uid).then((value) => {
-                        if (withoutAuth || value) {
-                            client
-                                .collection("shorten_urls")
-                                .find(withoutAuth ? null : { uid: user.uid })
-                                .toArray()
-                                .then((result) => {
-                                    const p1 = calculateTotalClicks(result);
-                                    const p2 = filterWRTYearsAndMonths(result);
-                                    Promise.all([p1, p2])
-                                        .then((response) => {
-                                            const [res1, res2] = response;
-                                            res.status(200).json({
-                                                allLinks: result.length,
-                                                allClicks: res1,
-                                                clicks: res2[0],
-                                                linksAdded: res2[1],
-                                            });
-                                        })
-                                        .catch((e) => {
-                                            console.log(e);
-                                            res.status(500).json({ err: "Internal Error" });
-                                        });
+                    client
+                        .collection("shorten_urls")
+                        .find(withoutAuth ? null : { uid: user.uid })
+                        .toArray()
+                        .then((result) => {
+                            console.log(result);
+                            const p1 = calculateTotalClicks(result);
+                            const p2 = filterWRTYearsAndMonths(result);
+                            Promise.all([p1, p2])
+                                .then((response) => {
+                                    const [res1, res2] = response;
+                                    res.status(200).json({
+                                        all_links: result.length,
+                                        all_clicks: res1,
+                                        clicks: res2[0],
+                                        links_added: res2[1],
+                                    });
                                 })
                                 .catch((e) => {
-                                    res.send(e);
+                                    console.log(e);
+                                    res.status(500).json({ err: "Internal Error" });
                                 });
-                        } else {
-                            res.status(400).json({ error: "Invalid User." });
-                        }
-                    });
+                        })
+                        .catch((e) => {
+                            console.log(e);
+                            res.status(500).send(e);
+                        });
                 }
                 if (error) {
                     console.log("Error in connecting DB.", error);
@@ -165,7 +191,7 @@ app.get("/meta", (req, res) => {
             res.status(401).json({ error: "Authorization Failed." });
         }
     } else {
-        res.status(401).json({ error: "Authorization Failed." });
+        res.status(401).json({ error: "Invalid Access." });
     }
 });
 
