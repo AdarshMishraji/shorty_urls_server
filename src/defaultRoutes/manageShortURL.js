@@ -100,7 +100,7 @@ app.delete("/delete_url", async (req, res) => {
                                 .collection("shorten_urls")
                                 .deleteOne({ _id: ObjectID(urlID), uid: user.uid })
                                 .then((value) => {
-                                    if (value.deleteCount > 0) {
+                                    if (value.deletedCount > 0) {
                                         return res.status(200).send({ message: "OK" });
                                     } else {
                                         return res.status(404).send({ error: "URL not found" });
@@ -267,7 +267,7 @@ app.patch("/update_password", (req, res) => {
     }
 });
 
-app.patch("/remove_password", (req, res) => {
+app.delete("/remove_password", (req, res) => {
     const { authorization, accesstoken } = req.headers;
     if (authorization === process.env.AUTHORIZATION) {
         const { urlID } = req.body;
