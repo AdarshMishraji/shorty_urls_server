@@ -15,7 +15,7 @@ const port = process.env.PORT || 4000;
 
 const app = express();
 app.all("/:x", (req, res, next) => {
-    console.log(req.params.x);
+    console.log("endpoint", req.params.x);
     next();
 });
 app.use(cors());

@@ -18,7 +18,7 @@ exports.decodeJWT = (token) => {
 exports.getClientData = (device) => {
     const deviceData = new DeviceDetector().parse(device);
     return {
-        clientType: deviceData?.client?.type,
+        client_type: deviceData?.client?.type,
         client_name: deviceData?.client?.name,
         OS: deviceData?.os?.name,
         device_type: deviceData?.device?.type,
