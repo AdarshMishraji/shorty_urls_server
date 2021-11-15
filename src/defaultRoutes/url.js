@@ -2,7 +2,7 @@ const express = require("express");
 const dotEnv = require("dotenv");
 var ObjectID = require("mongodb").ObjectID;
 const connectToMongoDBServer = require("../mongoDBConfig");
-const { VerifyAndDecodeJWT, getUserData } = require("../helpers");
+const { VerifyAndDecodeJWT, getMetaData, getMetaDataOfAURL } = require("../helpers");
 
 dotEnv.config();
 
@@ -53,7 +53,6 @@ app.get("/urls", (req, res) => {
 app.get("/url/:urlID", (req, res) => {
     const { authorization, accesstoken } = req.headers;
     if (authorization === process.env.AUTHORIZATION) {
-        const { limit } = req.query;
         const { urlID } = req.params;
         if (accesstoken) {
             const user = VerifyAndDecodeJWT(accesstoken);
@@ -64,7 +63,9 @@ app.get("/url/:urlID", (req, res) => {
                             .collection("shorten_urls")
                             .findOne({ uid: user.uid, _id: ObjectID(urlID) })
                             .then((value) => {
-                                return res.status(200).json(value);
+                                const meta = getMetaDataOfAURL(value?.from_visited);
+                                console.log(req.params.urlID);
+                                return res.status(200).json({ info: value, meta });
                             })
                             .catch((err) => {
                                 return res.status();
@@ -83,82 +84,6 @@ app.get("/url/:urlID", (req, res) => {
         }
     }
 });
-
-const getMetaData = (data) => {
-    let count = 0;
-    const noMonths = {
-        1: "January",
-        2: "February",
-        3: "March",
-        4: "April",
-        5: "May",
-        6: "June",
-        7: "July",
-        8: "August",
-        9: "September",
-        10: "October",
-        11: "November",
-        12: "December",
-    };
-    const res1 = {};
-    const res2 = {};
-    for (let i = 0; i < data.length; i++) {
-        const month = data[i].created_at.substr(5, 2);
-        const year = data[i].created_at.substr(0, 4);
-        count += data[i].num_of_visits;
-        if (res2[year]) {
-            res2[year].count += 1;
-            if (res2[year][noMonths[month]]) {
-                res2[year][noMonths[month]].count += 1;
-            } else {
-                res2[year][noMonths[month]] = { count: 1 };
-            }
-        } else {
-            res2[year] = { count: 1, [noMonths[month]]: { count: 1 } };
-        }
-        if (data[i].from_visited) {
-            for (let j = 0; j < data[i].from_visited.length; j++) {
-                const currMonth = data[i].from_visited[j].requested_at.substr(5, 2);
-                const currYear = data[i].from_visited[j].requested_at.substr(0, 4);
-                const currDate = data[i].from_visited[j].requested_at.substr(8, 2);
-                if (res1[currYear] && res1[currYear][noMonths[currMonth]]) {
-                    res1[currYear].count += 1;
-                    res1[currYear][noMonths[currMonth]].count += 1;
-                    if (res1[currYear][noMonths[currMonth]][currDate]) {
-                        res1[currYear][noMonths[currMonth]][currDate] += 1;
-                    } else {
-                        res1[currYear][noMonths[currMonth]] = { ...res1[currYear][noMonths[currMonth]], [currDate]: 1 };
-                    }
-                } else {
-                    res1[currYear] = { count: 1, [noMonths[currMonth]]: { count: 1, [currDate]: 1 } };
-                }
-                prevMonth = currMonth;
-            }
-        }
-    }
-    return {
-        count,
-        clicks: res1,
-        links_added: res2,
-        top_three: [
-            {
-                url: data?.[0]?.url,
-                short_url: data?.[0]?.short_url,
-                title: data[0]?.title,
-            },
-            {
-                url: data?.[1]?.url,
-                short_url: data?.[1]?.short_url,
-                title: data[1]?.title,
-            },
-            {
-                url: data?.[2]?.url,
-                short_url: data?.[2]?.short_url,
-                title: data[2]?.title,
-            },
-        ],
-    };
-};
 
 app.get("/meta", (req, res) => {
     const { authorization, accesstoken } = req.headers;
