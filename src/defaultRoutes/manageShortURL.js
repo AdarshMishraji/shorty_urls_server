@@ -39,31 +39,35 @@ app.post("/generate_short_url", async (req, res) => {
                                     } else {
                                         const newEndpoint = crypto.randomBytes(4).toString("hex");
                                         const short_url = process.env.OWN_URL_DEFAULT + newEndpoint;
-                                        const meta = (await Meta.parser(url)).meta;
-                                        client
-                                            .collection("shorten_urls")
-                                            .insertOne({
-                                                url,
-                                                short_url,
-                                                is_active: true,
-                                                num_of_visits: 0,
-                                                created_at: new Date().toISOString(),
-                                                uid: user.uid,
-                                                title: meta?.title,
-                                                description: meta?.description,
-                                            })
-                                            .then((value) => {
-                                                console.log("Inserted one url in shorten_urls.");
-                                                res.status(200).json({
-                                                    short_url: process.env.OWN_URL_DEFAULT + newEndpoint,
-                                                });
-                                                return;
+                                        Meta.parser(url)
+                                            .then(({ meta }) => {
+                                                client
+                                                    .collection("shorten_urls")
+                                                    .insertOne({
+                                                        url,
+                                                        short_url,
+                                                        is_active: true,
+                                                        num_of_visits: 0,
+                                                        created_at: new Date().toISOString(),
+                                                        uid: user.uid,
+                                                        title: meta?.title,
+                                                        description: meta?.description,
+                                                    })
+                                                    .then((value) => {
+                                                        console.log("Inserted one url in shorten_urls.");
+                                                        res.status(200).json({
+                                                            short_url: process.env.OWN_URL_DEFAULT + newEndpoint,
+                                                        });
+                                                        return;
+                                                    })
+                                                    .catch((e) => {
+                                                        console.log("Error while inserting url in shorten_urls.", JSON.stringify(e));
+                                                        return res.status(500).json({ error: "Internal Error." });
+                                                    });
                                             })
                                             .catch((e) => {
-                                                console.log("Error while inserting url in shorten_urls.", JSON.stringify(e));
-                                                res.status(500).json({ error: "Internal Error." });
+                                                return res.status(500).json({ error: "Invalid URL" });
                                             });
-                                        return;
                                     }
                                 });
                         }
