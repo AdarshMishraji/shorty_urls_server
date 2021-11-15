@@ -86,6 +86,62 @@ app.post("/generate_short_url", async (req, res) => {
     }
 });
 
+app.patch("/change_alias", (req, res) => {
+    const { authorization, accesstoken } = req.headers;
+    if (authorization === process.env.AUTHORIZATION) {
+        const { urlID, alias } = req.body;
+        if (accesstoken) {
+            const user = VerifyAndDecodeJWT(accesstoken);
+            if (urlID) {
+                if (user) {
+                    connectToMongoDBServer("shorty_urls", (error, client) => {
+                        if (client) {
+                            client
+                                .collection("shorten_urls")
+                                .findOne({ short_url: process.env.OWN_URL_DEFAULT + alias })
+                                .then((val) => {
+                                    if (val?._id) {
+                                        return res.status(403).send({ message: "This alias is already in use" });
+                                    } else {
+                                        client
+                                            .collection("shorten_urls")
+                                            .updateOne(
+                                                { _id: ObjectID(urlID), uid: user.uid },
+                                                { $set: { short_url: process.env.OWN_URL_DEFAULT + alias } }
+                                            )
+                                            .then((value) => {
+                                                if (value.modifiedCount > 0) {
+                                                    return res.status(200).send({ message: "OK" });
+                                                } else {
+                                                    return res.status(500).send({ error: "Internal Error" });
+                                                }
+                                            });
+                                    }
+                                })
+                                .catch((e) => {
+                                    console.log(e);
+                                    return res.status(500).json({ error: "Internal Error." });
+                                });
+                        }
+                        if (error) {
+                            console.log("Error in connecting DB.", error);
+                            return res.status(500).json({ error: "Internal Error." });
+                        }
+                    });
+                } else {
+                    res.status(400).json({ error: "Invalid User." });
+                }
+            } else {
+                res.status(422).json({ error: "Invalid Data." });
+            }
+        } else {
+            res.status(401).json({ error: "Invalid Access." });
+        }
+    } else {
+        res.status(401).json({ error: "Authorization Failed." });
+    }
+});
+
 app.delete("/delete_url", async (req, res) => {
     const { authorization, accesstoken } = req.headers;
     if (authorization === process.env.AUTHORIZATION) {

@@ -20,7 +20,7 @@ app.get("/:url", (req, res) => {
                 .then((value) => {
                     if (value) {
                         if (value?.is_active) {
-                            if (value?.expired_at && value?.expired_at > Date.now()) {
+                            if (!value.expired_at || value?.expired_at > Date.now()) {
                                 //for 24 hours -> Date.now() + (24*60*60*1000)
                                 if (value?.protection?.password) {
                                     aesEncryptData(

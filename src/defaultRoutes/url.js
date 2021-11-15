@@ -12,6 +12,7 @@ app.get("/urls", (req, res) => {
     const { authorization, accesstoken } = req.headers;
     if (authorization === process.env.AUTHORIZATION) {
         const { limit, skip } = req.query;
+        console.log(limit, skip);
         if (accesstoken) {
             const user = VerifyAndDecodeJWT(accesstoken);
             if (user) {
@@ -20,7 +21,7 @@ app.get("/urls", (req, res) => {
                         client
                             .collection("shorten_urls")
                             .find({ uid: user.uid })
-                            .skip(skip ? skip : 0)
+                            .skip(skip ? parseInt(skip) : 0)
                             .limit(limit ? parseInt(limit) : Number.MAX_SAFE_INTEGER)
                             .toArray()
                             .then((value) => {
@@ -49,7 +50,7 @@ app.get("/urls", (req, res) => {
     }
 });
 
-app.get("/url/:id", (req, res) => {
+app.get("/url/:urlID", (req, res) => {
     const { authorization, accesstoken } = req.headers;
     if (authorization === process.env.AUTHORIZATION) {
         const { limit } = req.query;
@@ -61,8 +62,7 @@ app.get("/url/:id", (req, res) => {
                     if (client) {
                         client
                             .collection("shorten_urls")
-                            .find({ uid: user.uid, _id: ObjectID(urlID) })
-                            .toArray()
+                            .findOne({ uid: user.uid, _id: ObjectID(urlID) })
                             .then((value) => {
                                 return res.status(200).json(value);
                             })
