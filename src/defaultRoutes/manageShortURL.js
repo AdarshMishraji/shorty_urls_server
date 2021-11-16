@@ -244,7 +244,7 @@ app.patch("/set_expiration_time", (req, res) => {
         const { urlID, expired_at } = req.body;
         if (accesstoken) {
             const user = VerifyAndDecodeJWT(accesstoken);
-            if (urlID && expired_at) {
+            if (urlID) {
                 if (user) {
                     connectToMongoDBServer("shorty_urls", (error, client) => {
                         if (client) {
@@ -255,7 +255,7 @@ app.patch("/set_expiration_time", (req, res) => {
                                     if (value.modifiedCount > 0) {
                                         return res.status(200).send({ message: "OK" });
                                     } else {
-                                        return res.status(404).send({ error: "URL not found" });
+                                        return res.status(404).send({ error: "Nothing has Updated." });
                                     }
                                 })
                                 .catch((e) => {
