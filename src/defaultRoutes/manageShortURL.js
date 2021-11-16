@@ -16,74 +16,78 @@ app.post("/generate_short_url", async (req, res) => {
     const { authorization, accesstoken } = req.headers;
     if (authorization === process.env.AUTHORIZATION) {
         const { url } = req.body;
-        if (accesstoken) {
-            const user = VerifyAndDecodeJWT(accesstoken);
-            if (url) {
-                if (user) {
-                    connectToMongoDBServer("shorty_urls", (error, client) => {
-                        if (client) {
-                            client
-                                .collection("shorten_urls")
-                                .findOne({ url, uid: user.uid })
-                                .then(async (value) => {
-                                    if (value) {
-                                        console.log("URL already exists.");
-                                        res.status(409).json({
-                                            short_url: value.short_url,
-                                            error: "URL already exists.",
-                                            is_active: value.is_active,
-                                            is_password_protected: Boolean(value?.protection?.password),
-                                            is_expired: value?.expired_at > Date.now(),
-                                        });
-                                        return;
-                                    } else {
-                                        const newEndpoint = crypto.randomBytes(4).toString("hex");
-                                        const short_url = process.env.OWN_URL_DEFAULT + newEndpoint;
-                                        Meta.parser(url)
-                                            .then(({ meta }) => {
-                                                client
-                                                    .collection("shorten_urls")
-                                                    .insertOne({
-                                                        url,
-                                                        short_url,
-                                                        is_active: true,
-                                                        num_of_visits: 0,
-                                                        created_at: new Date().toISOString(),
-                                                        uid: user.uid,
-                                                        title: meta?.title,
-                                                        description: meta?.description,
-                                                    })
-                                                    .then((value) => {
-                                                        console.log("Inserted one url in shorten_urls.");
-                                                        res.status(200).json({
-                                                            short_url: process.env.OWN_URL_DEFAULT + newEndpoint,
-                                                        });
-                                                        return;
-                                                    })
-                                                    .catch((e) => {
-                                                        console.log("Error while inserting url in shorten_urls.", JSON.stringify(e));
-                                                        return res.status(500).json({ error: "Internal Error." });
-                                                    });
-                                            })
-                                            .catch((e) => {
-                                                return res.status(500).json({ error: "Invalid URL" });
+        if (url.includes(process.env.OWN_URL_DEFAULT)) {
+            return res.status(405).json({ error: "It's already shortened." });
+        } else {
+            if (accesstoken) {
+                const user = VerifyAndDecodeJWT(accesstoken);
+                if (url) {
+                    if (user) {
+                        connectToMongoDBServer("shorty_urls", (error, client) => {
+                            if (client) {
+                                client
+                                    .collection("shorten_urls")
+                                    .findOne({ url, uid: user.uid })
+                                    .then(async (value) => {
+                                        if (value) {
+                                            console.log("URL already exists.");
+                                            res.status(409).json({
+                                                short_url: value.short_url,
+                                                error: "URL already exists.",
+                                                is_active: value.is_active,
+                                                is_password_protected: Boolean(value?.protection?.password),
+                                                is_expired: value?.expired_at > Date.now(),
                                             });
-                                    }
-                                });
-                        }
-                        if (error) {
-                            console.log("Error in connecting DB.", error);
-                            return res.status(500).json({ error: "Internal Error." });
-                        }
-                    });
+                                            return;
+                                        } else {
+                                            const newEndpoint = crypto.randomBytes(4).toString("hex");
+                                            const short_url = process.env.OWN_URL_DEFAULT + newEndpoint;
+                                            Meta.parser(url)
+                                                .then(({ meta }) => {
+                                                    client
+                                                        .collection("shorten_urls")
+                                                        .insertOne({
+                                                            url,
+                                                            short_url,
+                                                            is_active: true,
+                                                            num_of_visits: 0,
+                                                            created_at: new Date().toISOString(),
+                                                            uid: user.uid,
+                                                            title: meta?.title,
+                                                            description: meta?.description,
+                                                        })
+                                                        .then((value) => {
+                                                            console.log("Inserted one url in shorten_urls.");
+                                                            res.status(200).json({
+                                                                short_url: process.env.OWN_URL_DEFAULT + newEndpoint,
+                                                            });
+                                                            return;
+                                                        })
+                                                        .catch((e) => {
+                                                            console.log("Error while inserting url in shorten_urls.", JSON.stringify(e));
+                                                            return res.status(500).json({ error: "Internal Error." });
+                                                        });
+                                                })
+                                                .catch((e) => {
+                                                    return res.status(500).json({ error: "Invalid URL" });
+                                                });
+                                        }
+                                    });
+                            }
+                            if (error) {
+                                console.log("Error in connecting DB.", error);
+                                return res.status(500).json({ error: "Internal Error." });
+                            }
+                        });
+                    } else {
+                        res.status(400).json({ error: "Invalid User." });
+                    }
                 } else {
-                    res.status(400).json({ error: "Invalid User." });
+                    res.status(422).json({ error: "Not accepted empty url." });
                 }
             } else {
-                res.status(422).json({ error: "Not accepted empty url." });
+                res.status(401).json({ error: "Invalid Access." });
             }
-        } else {
-            res.status(401).json({ error: "Invalid Access." });
         }
     } else {
         res.status(401).json({ error: "Authorization Failed." });
