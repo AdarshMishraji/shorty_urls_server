@@ -127,65 +127,74 @@ const noMonths = {
 };
 
 exports.getMetaData = (data) => {
-    let count = 0;
-    const res1 = {};
-    const res2 = {};
-    for (let i = 0; i < data.length; i++) {
-        const month = data[i].created_at.substr(5, 2);
-        const year = data[i].created_at.substr(0, 4);
-        count += data[i].num_of_visits;
-        if (res2[year]) {
-            res2[year].count += 1;
-            if (res2[year][noMonths[month]]) {
-                res2[year][noMonths[month]].count += 1;
-            } else {
-                res2[year][noMonths[month]] = { count: 1 };
-            }
-        } else {
-            res2[year] = { count: 1, [noMonths[month]]: { count: 1 } };
-        }
-        if (data[i].from_visited) {
-            for (let j = 0; j < data[i].from_visited.length; j++) {
-                const currMonth = data[i].from_visited[j].requested_at.substr(5, 2);
-                const currYear = data[i].from_visited[j].requested_at.substr(0, 4);
-                const currDate = data[i].from_visited[j].requested_at.substr(8, 2);
-                if (res1[currYear] && res1[currYear][noMonths[currMonth]]) {
-                    res1[currYear].count += 1;
-                    res1[currYear][noMonths[currMonth]].count += 1;
-                    if (res1[currYear][noMonths[currMonth]][currDate]) {
-                        res1[currYear][noMonths[currMonth]][currDate] += 1;
-                    } else {
-                        res1[currYear][noMonths[currMonth]] = { ...res1[currYear][noMonths[currMonth]], [currDate]: 1 };
-                    }
+    if (data.length) {
+        let count = 0;
+        const res1 = {};
+        const res2 = {};
+        for (let i = 0; i < data.length; i++) {
+            const month = data[i].created_at.substr(5, 2);
+            const year = data[i].created_at.substr(0, 4);
+            count += data[i].num_of_visits;
+            if (res2[year]) {
+                res2[year].count += 1;
+                if (res2[year][noMonths[month]]) {
+                    res2[year][noMonths[month]].count += 1;
                 } else {
-                    res1[currYear] = { count: 1, [noMonths[currMonth]]: { count: 1, [currDate]: 1 } };
+                    res2[year][noMonths[month]] = { count: 1 };
                 }
-                prevMonth = currMonth;
+            } else {
+                res2[year] = { count: 1, [noMonths[month]]: { count: 1 } };
+            }
+            if (data[i].from_visited) {
+                for (let j = 0; j < data[i].from_visited.length; j++) {
+                    const currMonth = data[i].from_visited[j].requested_at.substr(5, 2);
+                    const currYear = data[i].from_visited[j].requested_at.substr(0, 4);
+                    const currDate = data[i].from_visited[j].requested_at.substr(8, 2);
+                    if (res1[currYear] && res1[currYear][noMonths[currMonth]]) {
+                        res1[currYear].count += 1;
+                        res1[currYear][noMonths[currMonth]].count += 1;
+                        if (res1[currYear][noMonths[currMonth]][currDate]) {
+                            res1[currYear][noMonths[currMonth]][currDate] += 1;
+                        } else {
+                            res1[currYear][noMonths[currMonth]] = { ...res1[currYear][noMonths[currMonth]], [currDate]: 1 };
+                        }
+                    } else {
+                        res1[currYear] = { count: 1, [noMonths[currMonth]]: { count: 1, [currDate]: 1 } };
+                    }
+                    prevMonth = currMonth;
+                }
             }
         }
+        return {
+            count,
+            clicks: res1,
+            links_added: res2,
+            top_three: [
+                {
+                    url: data?.[0]?.url,
+                    short_url: data?.[0]?.short_url,
+                    title: data[0]?.title,
+                },
+                {
+                    url: data?.[1]?.url,
+                    short_url: data?.[1]?.short_url,
+                    title: data[1]?.title,
+                },
+                {
+                    url: data?.[2]?.url,
+                    short_url: data?.[2]?.short_url,
+                    title: data[2]?.title,
+                },
+            ],
+        };
+    } else {
+        return {
+            count: 0,
+            clicks: {},
+            links_added: {},
+            top_three: [],
+        };
     }
-    return {
-        count,
-        clicks: res1,
-        links_added: res2,
-        top_three: [
-            {
-                url: data?.[0]?.url,
-                short_url: data?.[0]?.short_url,
-                title: data[0]?.title,
-            },
-            {
-                url: data?.[1]?.url,
-                short_url: data?.[1]?.short_url,
-                title: data[1]?.title,
-            },
-            {
-                url: data?.[2]?.url,
-                short_url: data?.[2]?.short_url,
-                title: data[2]?.title,
-            },
-        ],
-    };
 };
 
 exports.getMetaDataOfAURL = (data) => {

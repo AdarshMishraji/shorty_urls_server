@@ -15,6 +15,7 @@ app.get("/urls", (req, res) => {
         console.log(limit, skip);
         if (accesstoken) {
             const user = VerifyAndDecodeJWT(accesstoken);
+            console.log(user);
             if (user) {
                 connectToMongoDBServer("shorty_urls", (error, client) => {
                     if (client) {
@@ -89,24 +90,23 @@ app.get("/meta", (req, res) => {
     const { authorization, accesstoken } = req.headers;
     const { withoutAuth } = req.query;
     if (authorization === process.env.AUTHORIZATION) {
-        if (withoutAuth || accesstoken) {
-            const user = withoutAuth || VerifyAndDecodeJWT(accesstoken);
+        if (withoutAuth === "true" || accesstoken) {
+            const user = withoutAuth === "true" || VerifyAndDecodeJWT(accesstoken);
             connectToMongoDBServer("shorty_urls", (error, client) => {
                 if (client) {
                     client
                         .collection("shorten_urls")
-                        .find(withoutAuth ? null : { uid: user.uid })
+                        .find(withoutAuth === "true" ? null : { uid: user.uid })
                         .sort({ num_of_visits: -1 })
                         .toArray()
                         .then((result) => {
                             const metaData = getMetaData(result);
-                            console.log(metaData);
                             return res.status(200).json({
                                 all_links: result.length,
-                                all_clicks: metaData.count,
-                                clicks: metaData.clicks,
-                                links_added: metaData.links_added,
-                                top_three: metaData.top_three,
+                                all_clicks: metaData?.count,
+                                clicks: metaData?.clicks,
+                                links_added: metaData?.links_added,
+                                top_three: metaData?.top_three,
                             });
                         })
                         .catch((e) => {
