@@ -24,7 +24,7 @@ app.get("/history", (req, res) => {
                             .then((value) => {
                                 if (value) {
                                     client
-                                        .collection("shorten_urls")
+                                        .collection("shorten_urls_old")
                                         .find({ uid: user.uid })
                                         .limit(limit ? parseInt(limit) : Number.MAX_SAFE_INTEGER)
                                         .toArray()

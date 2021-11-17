@@ -26,7 +26,7 @@ app.post("/generate_short_url", (req, res) => {
                                 .then((value) => {
                                     if (value) {
                                         client
-                                            .collection("shorten_urls")
+                                            .collection("shorten_urls_old")
                                             .findOne({ url, uid: user.uid })
                                             .then((value) => {
                                                 if (value) {
@@ -39,7 +39,7 @@ app.post("/generate_short_url", (req, res) => {
                                                 } else {
                                                     const short_url = process.env.OWN_URL_DEFAULT + newEndpoint;
                                                     client
-                                                        .collection("shorten_urls")
+                                                        .collection("shorten_urls_old")
                                                         .insertOne({
                                                             url,
                                                             short_url,
