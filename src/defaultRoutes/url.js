@@ -27,7 +27,9 @@ app.get("/urls", (req, res) => {
                             .toArray()
                             .then((value) => {
                                 res.status(200).json({
-                                    urls: value,
+                                    urls: value.map((val) => {
+                                        return { ...val, short_url: process.env.OWN_URL_DEFAULT + val.alias };
+                                    }),
                                 });
                             })
                             .catch((e) => {
@@ -66,7 +68,7 @@ app.get("/url/:urlID", (req, res) => {
                             .then((value) => {
                                 const meta = getMetaDataOfAURL(value?.from_visited);
                                 console.log(req.params.urlID);
-                                return res.status(200).json({ info: value, meta });
+                                return res.status(200).json({ info: { ...value, short_url: process.env.OWN_URL_DEFAULT + value.alias }, meta });
                             })
                             .catch((err) => {
                                 return res.status();

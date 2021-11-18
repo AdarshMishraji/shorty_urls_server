@@ -32,7 +32,7 @@ app.post("/generate_short_url", async (req, res) => {
                                         if (value) {
                                             console.log("URL already exists.");
                                             res.status(409).json({
-                                                short_url: value.short_url,
+                                                short_url: process.env.OWN_URL_DEFAULT + value.alias,
                                                 error: "URL already exists.",
                                                 is_active: value.is_active,
                                                 is_password_protected: Boolean(value?.protection?.password),
@@ -41,14 +41,13 @@ app.post("/generate_short_url", async (req, res) => {
                                             return;
                                         } else {
                                             const newEndpoint = crypto.randomBytes(4).toString("hex");
-                                            const short_url = process.env.OWN_URL_DEFAULT + newEndpoint;
                                             Meta.parser(url)
                                                 .then(({ meta }) => {
                                                     client
                                                         .collection("shorten_urls")
                                                         .insertOne({
                                                             url,
-                                                            short_url,
+                                                            alias: newEndpoint,
                                                             is_active: true,
                                                             num_of_visits: 0,
                                                             created_at: new Date().toISOString(),
@@ -106,17 +105,14 @@ app.patch("/change_alias", (req, res) => {
                         if (client) {
                             client
                                 .collection("shorten_urls")
-                                .findOne({ short_url: process.env.OWN_URL_DEFAULT + alias })
+                                .findOne({ alias })
                                 .then((val) => {
                                     if (val?._id) {
                                         return res.status(403).send({ message: "This alias is already in use" });
                                     } else {
                                         client
                                             .collection("shorten_urls")
-                                            .updateOne(
-                                                { _id: ObjectID(urlID), uid: user.uid },
-                                                { $set: { short_url: process.env.OWN_URL_DEFAULT + alias } }
-                                            )
+                                            .updateOne({ _id: ObjectID(urlID), uid: user.uid }, { $set: { alias } })
                                             .then((value) => {
                                                 if (value.modifiedCount > 0) {
                                                     return res.status(200).send({ message: "OK" });

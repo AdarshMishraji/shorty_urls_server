@@ -16,7 +16,7 @@ app.get("/:url", (req, res) => {
         if (client) {
             client
                 .collection("shorten_urls")
-                .findOne({ short_url: process.env.OWN_URL_DEFAULT + url })
+                .findOne({ alias: url })
                 .then((value) => {
                     if (value) {
                         if (value?.is_active) {
@@ -44,7 +44,7 @@ app.get("/:url", (req, res) => {
                                         });
                                 } else {
                                     const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-                                    updateClick(client, ip, value.short_url, req.header("user-agent"))
+                                    updateClick(client, ip, url, req.header("user-agent"))
                                         .then(() => res.status(200).redirect(`${value.url}`))
                                         .catch((e) => {
                                             console.log(e);

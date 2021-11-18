@@ -48,7 +48,7 @@ exports.aesDecryptData = (encrypted_string) => {
     });
 };
 
-exports.updateClick = (client, ip, short_url, clientString) => {
+exports.updateClick = (client, ip, alias, clientString) => {
     return new Promise((resolve, reject) => {
         const client_info = this.getClientData(clientString);
         ipLocator.getDomainOrIPDetails(ip, "json", (err, data) => {
@@ -57,7 +57,7 @@ exports.updateClick = (client, ip, short_url, clientString) => {
                 client
                     .collection("shorten_urls")
                     .updateOne(
-                        { short_url },
+                        { alias },
                         {
                             $inc: { num_of_visits: 1 },
                             $push: {
@@ -79,7 +79,7 @@ exports.updateClick = (client, ip, short_url, clientString) => {
                 client
                     .collection("shorten_urls")
                     .updateOne(
-                        { short_url: short_url },
+                        { alias },
                         {
                             $inc: { num_of_visits: 1 },
                             $push: {
@@ -172,17 +172,17 @@ exports.getMetaData = (data) => {
             top_three: [
                 {
                     url: data?.[0]?.url,
-                    short_url: data?.[0]?.short_url,
+                    short_url: process.env.OWN_URL_DEFAULT + data?.[0]?.alias,
                     title: data[0]?.title,
                 },
                 {
                     url: data?.[1]?.url,
-                    short_url: data?.[1]?.short_url,
+                    short_url: process.env.OWN_URL_DEFAULT + data?.[1]?.alias,
                     title: data[1]?.title,
                 },
                 {
                     url: data?.[2]?.url,
-                    short_url: data?.[2]?.short_url,
+                    short_url: process.env.OWN_URL_DEFAULT + data?.[2]?.alias,
                     title: data[2]?.title,
                 },
             ],
