@@ -27,15 +27,11 @@ exports.getClientData = (device) => {
     };
 };
 
-exports.getUserData = (client, uid) => {
-    return client.collection("users").findOne({ uid: uid });
-};
-
 exports.aesEncryptData = (string) => {
     return new Promise((resolve, reject) => {
         const aesIV = crypto.randomBytes(12);
         const cipher = crypto.createCipheriv("aes-256-gcm", process.env.AUTHORIZATION, aesIV);
-        resolve(Buffer.concat([aesIV, Buffer.concat([cipher.update(string), cipher.final()]), cipher.getAuthTag()]).toString("base64"));
+        resolve({ key: Buffer.concat([aesIV, Buffer.concat([cipher.update(string), cipher.final()]), cipher.getAuthTag()]).toString("base64") });
     });
 };
 
@@ -44,69 +40,72 @@ exports.aesDecryptData = (encrypted_string) => {
         const buffer = Buffer.from(encrypted_string, "base64");
         const cipher = crypto.createDecipheriv("aes-256-gcm", process.env.AUTHORIZATION, buffer.slice(0, 12));
         cipher.setAuthTag(buffer.slice(-16));
-        resolve(cipher.update(buffer.slice(12, -16)) + cipher.final());
+        resolve({ value: cipher.update(buffer.slice(12, -16)) + cipher.final() });
     });
 };
 
-exports.updateClick = (client, ip, alias, clientString) => {
+exports.updateClick = (ip, alias, clientString, db) => {
     return new Promise((resolve, reject) => {
         const client_info = this.getClientData(clientString);
         ipLocator.getDomainOrIPDetails(ip, "json", (err, data) => {
             if (data == "The IP address is part of a reserved range" || err) {
-                console.log("data error at ip locator", data, err);
-                client
-                    .collection("shorten_urls")
-                    .updateOne(
-                        { alias },
-                        {
-                            $inc: { num_of_visits: 1 },
-                            $push: {
-                                from_visited: {
-                                    ip: "XXX.XXX.XXX.XXX",
-                                    client_info,
-                                    requested_at: new Date().toISOString(),
-                                    location: null,
-                                },
+                this.updateOne(
+                    { alias },
+                    {
+                        $inc: { num_of_visits: 1 },
+                        $push: {
+                            from_visited: {
+                                ip: "XXX.XXX.XXX.XXX",
+                                client_info,
+                                requested_at: new Date().toISOString(),
+                                location: null,
                             },
+                        },
+                    },
+                    db
+                )
+                    .then(({ modifiedCount }) => {
+                        if (modifiedCount > 0) {
+                            return resolve({ code: 200, message: "Incremented num_of_visits without location." });
+                        } else {
+                            return reject({ code: 400, error: "Failed to udpate." });
                         }
-                    )
-                    .then((val_update) => {
-                        console.log("Incremented num_of_visits without location.");
                     })
-                    .catch((e) => reject(e));
+                    .catch(({ error }) => reject({ code: 500, error }));
             } else {
-                console.log("else in iplocator");
-                client
-                    .collection("shorten_urls")
-                    .updateOne(
-                        { alias },
-                        {
-                            $inc: { num_of_visits: 1 },
-                            $push: {
-                                from_visited: {
-                                    ip: data.query,
-                                    client_info,
-                                    requested_at: new Date().toISOString(),
-                                    location: {
-                                        country: data.country,
-                                        city: data.city,
-                                        zipCode: data.zip,
-                                        lat_long: {
-                                            latitude: data.lat,
-                                            longitude: data.lon,
-                                        },
-                                        timezone: data.timezone,
+                this.updateOne(
+                    { alias },
+                    {
+                        $inc: { num_of_visits: 1 },
+                        $push: {
+                            from_visited: {
+                                ip: data.query,
+                                client_info,
+                                requested_at: new Date().toISOString(),
+                                location: {
+                                    country: data.country,
+                                    city: data.city,
+                                    zipCode: data.zip,
+                                    lat_long: {
+                                        latitude: data.lat,
+                                        longitude: data.lon,
                                     },
+                                    timezone: data.timezone,
                                 },
                             },
+                        },
+                        db,
+                    }
+                )
+                    .then(({ modifiedCount }) => {
+                        if (modifiedCount > 0) {
+                            return resolve({ code: 200, message: "Incremented num_of_visits with location." });
+                        } else {
+                            return reject({ code: 400, error: "Failed to udpate." });
                         }
-                    )
-                    .then((val_update) => {
-                        console.log("Location inserted and updated.");
                     })
-                    .catch((e) => reject(e));
+                    .catch(({ error }) => reject({ code: 500, error }));
             }
-            return resolve();
         });
     });
 };
@@ -226,46 +225,38 @@ exports.getMetaDataOfAURL = (data) => {
                 year_month_day_click[currYear] = { count: 1, [noMonths[currMonth]]: { count: 1, [currDate]: 1 } };
             }
 
-            console.log(year_month_day_click);
-
-            if (client_name)
+            if (client_name) {
                 if (browser_clicks[client_name]) {
                     browser_clicks[client_name].count += 1;
                 } else {
                     browser_clicks[client_name] = { count: 1 };
                 }
+            }
 
-            console.log(browser_clicks);
-
-            if (client_OS)
+            if (client_OS) {
                 if (os_clicks[client_OS]) {
                     os_clicks[client_OS].count += 1;
                 } else {
                     os_clicks[client_OS] = { count: 1 };
                 }
+            }
 
-            console.log(os_clicks);
-
-            if (device_type)
+            if (device_type) {
                 if (device_clicks[device_type]) {
                     device_clicks[device_type].count += 1;
                 } else {
                     device_clicks[device_type] = { count: 1 };
                 }
+            }
 
-            console.log(device_clicks);
-
-            if (country && city)
+            if (country && city) {
                 if (country_clicks[country] && country_clicks[country][city]) {
-                    console.log("true");
                     country_clicks[country].count += 1;
                     country_clicks[country][city].count += 1;
                 } else {
-                    console.log("false");
                     country_clicks[country] = { count: 1, [city]: { count: 1 } };
                 }
-
-            console.log(country_clicks);
+            }
         }
         return {
             year_month_day_click,
@@ -276,4 +267,80 @@ exports.getMetaDataOfAURL = (data) => {
         };
     }
     return {};
+};
+
+exports.ResponseError = class ResponseError extends Error {
+    constructor({ code, error }) {
+        super(error);
+        this.code = code;
+        this.error = error;
+    }
+};
+
+exports.insertOne = (value, db) => {
+    return new Promise((resolve, reject) => {
+        if (db) {
+            db.collection("shorten_urls")
+                .insertOne(value)
+                .then((value) => {
+                    return resolve({ insertedCount: value.insertedCount });
+                })
+                .catch((e) => {
+                    return reject({ error: "Internal Error" });
+                });
+        } else {
+            return reject({ error: "DB is not connected" });
+        }
+    });
+};
+
+exports.findOne = (query, db) => {
+    return new Promise((resolve, reject) => {
+        if (db) {
+            db.collection("shorten_urls")
+                .findOne(query)
+                .then((value) => {
+                    return resolve(value);
+                })
+                .catch((e) => {
+                    return reject({ error: "Internal Error" });
+                });
+        } else {
+            return reject({ error: "DB is not connected" });
+        }
+    });
+};
+
+exports.updateOne = (query, value, db) => {
+    return new Promise((resolve, reject) => {
+        if (db) {
+            db.collection("shorten_urls")
+                .updateOne(query, value)
+                .then((value) => {
+                    return resolve({ modifiedCount: value.modifiedCount });
+                })
+                .catch((e) => {
+                    return reject({ error: "Internal Error" });
+                });
+        } else {
+            return reject({ error: "DB is not connected" });
+        }
+    });
+};
+
+exports.deleteOne = (query, db) => {
+    return new Promise((resolve, reject) => {
+        if (db) {
+            db.collection("shorten_urls")
+                .deleteOne(query)
+                .then((value) => {
+                    return resolve({ deletedCount: value.deletedCount });
+                })
+                .catch((e) => {
+                    return reject({ error: "Internal Error" });
+                });
+        } else {
+            return reject({ error: "DB is not connected" });
+        }
+    });
 };
