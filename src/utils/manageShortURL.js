@@ -4,7 +4,7 @@ const bcrypt = require("bcrypt");
 const ObjectID = require("mongodb").ObjectID;
 const Meta = require("html-metadata-parser");
 
-const { updateOne, deleteOne, findOne, insertOne } = require("../helpers");
+const { updateOne, deleteOne, findOne, insertOne } = require("../utils");
 
 dotEnv.config();
 

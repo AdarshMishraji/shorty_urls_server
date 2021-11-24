@@ -1,5 +1,6 @@
 const express = require("express");
 const dotEnv = require("dotenv");
+
 const { VerifyAndDecodeJWT } = require("../helpers");
 const { getURLs, urlData, getMeta } = require("../utils/url");
 
@@ -10,11 +11,11 @@ const app = express.Router();
 app.get("/urls", (req, res) => {
     const { authorization, accesstoken } = req.headers;
     if (authorization === process.env.AUTHORIZATION) {
-        const { limit, skip } = req.query;
+        const { limit, skip, query } = req.query;
         if (accesstoken) {
             const user = VerifyAndDecodeJWT(accesstoken);
             if (user) {
-                getURLs(user, limit, skip, req.app.locals.db)
+                getURLs(user, limit, skip, query, req.app.locals.db)
                     .then(({ code, data }) => res.status(code).json(data))
                     .catch(({ code, error }) => res.status(code).json({ error }));
             } else {
@@ -37,7 +38,10 @@ app.get("/url/:urlID", (req, res) => {
             if (user) {
                 urlData(user, urlID, req.app.locals.db)
                     .then(({ code, data }) => res.status(code).json(data))
-                    .catch(({ code, error }) => res.status(code).json({ error }));
+                    .catch(({ code, error }) => {
+                        console.log(code, error);
+                        res.status(code).json({ error });
+                    });
             } else {
                 res.status(401).json({ error: "Authorization Failed." });
             }

@@ -1,7 +1,9 @@
 const express = require("express");
 const dotEnv = require("dotenv");
 const bcrypt = require("bcrypt");
-const { aesDecryptData, updateClick } = require("../helpers");
+
+const { aesDecryptData } = require("../helpers");
+const { updateClick } = require("../utils/redirect");
 
 dotEnv.config();
 

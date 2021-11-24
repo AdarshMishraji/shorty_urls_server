@@ -1,15 +1,15 @@
 const dotEnv = require("dotenv");
 var ObjectID = require("mongodb").ObjectID;
 
-const { getMetaData, getMetaDataOfAURL, findOne } = require("../helpers");
+const { getMetaData, getMetaDataOfAURL, findOne } = require("../utils");
 
 dotEnv.config();
 
-exports.getURLs = (user, limit, skip, db) => {
+exports.getURLs = (user, limit, skip, query, db) => {
     return new Promise((resolve, reject) => {
         if (db) {
             db.collection("shorten_urls")
-                .find({ uid: user.uid })
+                .find({ uid: user.uid, ...(query ? { url: { $regex: new RegExp(query), $options: "i" } } : null) })
                 .skip(skip ? parseInt(skip) : 0)
                 .limit(limit ? parseInt(limit) : Number.MAX_SAFE_INTEGER)
                 .toArray()

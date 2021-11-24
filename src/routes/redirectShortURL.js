@@ -2,9 +2,12 @@ const path = require("path");
 const express = require("express");
 const dotEnv = require("dotenv");
 
-const { aesEncryptData, updateClick, findOne } = require("../helpers");
+const { aesEncryptData } = require("../helpers");
+const { updateClick } = require("../utils/redirect");
+const { findOne } = require("../utils");
 
 dotEnv.config();
+
 const app = express.Router();
 
 app.use(express.static(path.join(__dirname, "../../public/")));

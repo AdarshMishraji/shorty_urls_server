@@ -14,6 +14,7 @@ exports.MongoDB = class MongoDB {
             (error, client) => {
                 if (client) {
                     this.db = client.db("shorty_urls");
+                    console.log("MongoDB server connected");
                     return callback(null, this.db);
                 }
                 if (error) {

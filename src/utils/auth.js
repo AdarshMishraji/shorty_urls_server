@@ -1,6 +1,7 @@
 const dotEnv = require("dotenv");
 const jwt = require("jsonwebtoken");
 const { v4: uuidv4 } = require("uuid");
+
 dotEnv.config();
 
 exports.authenticate = (user, db) => {

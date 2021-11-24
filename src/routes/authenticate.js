@@ -1,5 +1,6 @@
 const express = require("express");
 const dotEnv = require("dotenv");
+
 const { decodeJWT } = require("../helpers");
 const { authenticate } = require("../utils/auth");
 
