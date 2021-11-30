@@ -1,71 +1,30 @@
 const express = require("express");
 const dotEnv = require("dotenv");
 
-const { VerifyAndDecodeJWT } = require("../helpers");
-const { getURLs, urlData, getMeta } = require("../utils/url");
+const { validateUser, validateAccess } = require("../middlewares");
+const { getURLs, urlData } = require("../utils/url");
 
 dotEnv.config();
 
 const app = express.Router();
 
+app.use(validateAccess);
+app.use(validateUser);
+
 app.get("/urls", (req, res) => {
-    const { authorization, accesstoken } = req.headers;
-    if (authorization === process.env.AUTHORIZATION) {
-        const { limit, skip, query } = req.query;
-        if (accesstoken) {
-            const user = VerifyAndDecodeJWT(accesstoken);
-            if (user) {
-                getURLs(user, limit, skip, query, req.app.locals.db)
-                    .then(({ code, data }) => res.status(code).json(data))
-                    .catch(({ code, error }) => res.status(code).json({ error }));
-            } else {
-                res.status(400).json({ error: "Invalid User." });
-            }
-        } else {
-            res.status(401).json({ error: "Authorization Failed." });
-        }
-    } else {
-        res.status(401).json({ error: "Invalid Access." });
-    }
+    const { limit, skip, query } = req.query;
+    getURLs(res.locals.user, limit, skip, query, req.app.locals.db)
+        .then(({ code, data }) => res.status(code).json(data))
+        .catch(({ code, error }) => res.status(code).json({ error }));
 });
 
 app.get("/url/:urlID", (req, res) => {
-    const { authorization, accesstoken } = req.headers;
-    if (authorization === process.env.AUTHORIZATION) {
-        const { urlID } = req.params;
-        if (accesstoken) {
-            const user = VerifyAndDecodeJWT(accesstoken);
-            if (user) {
-                urlData(user, urlID, req.app.locals.db)
-                    .then(({ code, data }) => res.status(code).json(data))
-                    .catch(({ code, error }) => {
-                        console.log(code, error);
-                        res.status(code).json({ error });
-                    });
-            } else {
-                res.status(401).json({ error: "Authorization Failed." });
-            }
-        } else {
-            res.status(401).json({ error: "Invalid Access." });
-        }
-    }
-});
-
-app.get("/meta", (req, res) => {
-    const { authorization, accesstoken } = req.headers;
-    const { withoutAuth } = req.query;
-    if (authorization === process.env.AUTHORIZATION) {
-        if (withoutAuth === "true" || accesstoken) {
-            const user = withoutAuth === "true" || VerifyAndDecodeJWT(accesstoken);
-            getMeta(withoutAuth, user, req.app.locals.db)
-                .then(({ code, data }) => res.status(code).json(data))
-                .catch(({ code, error }) => res.status(code).json({ error }));
-        } else {
-            res.status(401).json({ error: "Authorization Failed." });
-        }
-    } else {
-        res.status(401).json({ error: "Invalid Access." });
-    }
+    const { urlID } = req.params;
+    urlData(res.locals.user, urlID, req.app.locals.db)
+        .then(({ code, data }) => res.status(code).json(data))
+        .catch(({ code, error }) => {
+            res.status(code).json({ error });
+        });
 });
 
 module.exports = app;

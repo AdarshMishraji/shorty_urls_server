@@ -9,7 +9,7 @@ dotEnv.config();
 
 const app = express.Router();
 
-app.post("/password_for_protected_site", (req, res) => {
+app.post("/", (req, res) => {
     const { key, requested_at, password } = req.body;
     if (Date.now() - requested_at <= 120000) {
         aesDecryptData(key).then(({ value }) => {
@@ -33,7 +33,6 @@ app.post("/password_for_protected_site", (req, res) => {
             }
         });
     } else {
-        console.log("expired");
         return res.status(400).json({ error: "Request Expired." });
     }
 });

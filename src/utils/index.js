@@ -1,4 +1,5 @@
 const dotEnv = require("dotenv");
+const { aesDecryptData } = require("../helpers");
 
 dotEnv.config();
 
@@ -17,7 +18,7 @@ const noMonths = {
     12: "December",
 };
 
-exports.getMetaData = (data) => {
+exports.getMetaData = async (data) => {
     if (data.length) {
         let count = 0;
         const res1 = {};
@@ -63,17 +64,17 @@ exports.getMetaData = (data) => {
             top_three: [
                 {
                     url: data?.[0]?.url,
-                    short_url: process.env.OWN_URL_DEFAULT + data?.[0]?.alias,
+                    short_url: data?.[0]?.alias && process.env.OWN_URL_DEFAULT + (await aesDecryptData(data?.[0]?.alias))?.value,
                     title: data[0]?.title,
                 },
                 {
                     url: data?.[1]?.url,
-                    short_url: process.env.OWN_URL_DEFAULT + data?.[1]?.alias,
+                    short_url: data?.[1]?.alias && process.env.OWN_URL_DEFAULT + (await aesDecryptData(data?.[1]?.alias))?.value,
                     title: data[1]?.title,
                 },
                 {
                     url: data?.[2]?.url,
-                    short_url: process.env.OWN_URL_DEFAULT + data?.[2]?.alias,
+                    short_url: data?.[2]?.alias && process.env.OWN_URL_DEFAULT + (await aesDecryptData(data?.[2]?.alias))?.value,
                     title: data[2]?.title,
                 },
             ],
@@ -88,84 +89,101 @@ exports.getMetaData = (data) => {
     }
 };
 
-exports.getMetaDataOfAURL = (data) => {
+exports.getMetaDataOfAURL = async (data) => {
     if (data) {
         const year_month_day_click = {};
         const browser_clicks = {};
         const os_clicks = {};
         const device_clicks = {};
         const country_clicks = {};
-        for (let j = 0; j < data.length; j++) {
-            let currMonth = data[j].requested_at.substr(5, 2);
-            let currYear = data[j].requested_at.substr(0, 4);
-            let currDate = data[j].requested_at.substr(8, 2);
-            let client_name = data[j]?.client_info?.client_name;
-            let client_OS = data[j]?.client_info?.OS;
-            let device_type = data[j]?.client_info?.device_type;
-            let country = data[j]?.location?.country;
-            let city = data[j]?.location?.city;
 
-            if (year_month_day_click[currYear] && year_month_day_click[currYear][noMonths[currMonth]]) {
-                year_month_day_click[currYear].count += 1;
-                year_month_day_click[currYear][noMonths[currMonth]].count += 1;
-                if (year_month_day_click[currYear][noMonths[currMonth]][currDate]) {
-                    year_month_day_click[currYear][noMonths[currMonth]][currDate] += 1;
-                } else {
-                    year_month_day_click[currYear][noMonths[currMonth]] = { ...year_month_day_click[currYear][noMonths[currMonth]], [currDate]: 1 };
-                }
-            } else {
-                year_month_day_click[currYear] = { count: 1, [noMonths[currMonth]]: { count: 1, [currDate]: 1 } };
-            }
+        const decrypted_from_visited = [];
+        try {
+            for (let j = 0; j < data.length; j++) {
+                const client_info = data[j]?.client_info && JSON.parse((await aesDecryptData(data[j]?.client_info))?.value);
+                const location = data[j]?.location && JSON.parse((await aesDecryptData(data[j]?.location))?.value);
+                decrypted_from_visited.push({ ...data[j], client_info, location, ip: (await aesDecryptData(data[j]?.ip))?.value });
+                let currMonth = data[j].requested_at.substr(5, 2);
+                let currYear = data[j].requested_at.substr(0, 4);
+                let currDate = data[j].requested_at.substr(8, 2);
+                let client_name = client_info?.client_name;
+                let client_OS = client_info?.OS;
+                let device_type = client_info?.device_type;
+                let country = location?.country;
+                let city = location?.city;
 
-            if (client_name) {
-                if (browser_clicks[client_name]) {
-                    browser_clicks[client_name].count += 1;
+                if (year_month_day_click[currYear] && year_month_day_click[currYear][noMonths[currMonth]]) {
+                    year_month_day_click[currYear].count += 1;
+                    year_month_day_click[currYear][noMonths[currMonth]].count += 1;
+                    if (year_month_day_click[currYear][noMonths[currMonth]][currDate]) {
+                        year_month_day_click[currYear][noMonths[currMonth]][currDate] += 1;
+                    } else {
+                        year_month_day_click[currYear][noMonths[currMonth]] = {
+                            ...year_month_day_click[currYear][noMonths[currMonth]],
+                            [currDate]: 1,
+                        };
+                    }
                 } else {
-                    browser_clicks[client_name] = { count: 1 };
+                    year_month_day_click[currYear] = { count: 1, [noMonths[currMonth]]: { count: 1, [currDate]: 1 } };
                 }
-            }
 
-            if (client_OS) {
-                if (os_clicks[client_OS]) {
-                    os_clicks[client_OS].count += 1;
-                } else {
-                    os_clicks[client_OS] = { count: 1 };
+                if (client_name) {
+                    if (browser_clicks[client_name]) {
+                        browser_clicks[client_name].count += 1;
+                    } else {
+                        browser_clicks[client_name] = { count: 1 };
+                    }
                 }
-            }
 
-            if (device_type) {
-                if (device_clicks[device_type]) {
-                    device_clicks[device_type].count += 1;
-                } else {
-                    device_clicks[device_type] = { count: 1 };
+                if (client_OS) {
+                    if (os_clicks[client_OS]) {
+                        os_clicks[client_OS].count += 1;
+                    } else {
+                        os_clicks[client_OS] = { count: 1 };
+                    }
                 }
-            }
 
-            if (country && city) {
-                if (country_clicks[country] && country_clicks[country][city]) {
-                    country_clicks[country].count += 1;
-                    country_clicks[country][city].count += 1;
-                } else {
-                    country_clicks[country] = { count: 1, [city]: { count: 1 } };
+                if (device_type) {
+                    if (device_clicks[device_type]) {
+                        device_clicks[device_type].count += 1;
+                    } else {
+                        device_clicks[device_type] = { count: 1 };
+                    }
+                }
+
+                if (country && city) {
+                    if (country_clicks[country] && country_clicks[country][city]) {
+                        country_clicks[country].count += 1;
+                        country_clicks[country][city].count += 1;
+                    } else {
+                        country_clicks[country] = { count: 1, [city]: { count: 1 } };
+                    }
                 }
             }
+            return {
+                meta: {
+                    year_month_day_click,
+                    device_clicks,
+                    browser_clicks,
+                    os_clicks,
+                    country_clicks,
+                },
+                decrypted_from_visited,
+            };
+        } catch (e) {
+            console.log(e);
+            return {};
         }
-        return {
-            year_month_day_click,
-            device_clicks,
-            browser_clicks,
-            os_clicks,
-            country_clicks,
-        };
     }
     return {};
 };
 
 exports.ResponseError = class ResponseError extends Error {
-    constructor({ code, error }) {
+    constructor({ code, error, reason }) {
         super(error);
         this.code = code;
         this.error = error;
+        this.reason = reason;
     }
 };
 
