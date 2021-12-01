@@ -4,20 +4,14 @@ const cors = require("cors");
 const dotEnv = require("dotenv");
 require("ejs");
 
-const { MongoDB } = require("./src/mongoDBConfig");
-
-const manageShortURL = require("./src/routes/manageShortURL");
-const url = require("./src/routes/url");
-const meta = require("./src/routes/meta");
-const passwordProtection = require("./src/routes/passwordProtection");
-const redirectShortURL = require("./src/routes/redirectShortURL");
-const authenticate = require("./src/routes/authenticate");
+const MongoDB = require("./src/mongoDBConfig");
+const { authenticate, meta, passwordProtection, redirectShortURL, manageShortURL, url, details } = require("./src/routes");
+const { logRoute } = require("./src/middlewares");
 
 dotEnv.config();
 
 const port = process.env.PORT || 5000;
 const app = express();
-const mongoDB = new MongoDB();
 
 app.use(cors());
 app.use(express.json());
@@ -26,15 +20,7 @@ app.use(express.static(path.join(__dirname, "../public/")));
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
-// replace the work of morgan module
-app.all("/:x/:y", (req, res, next) => {
-    console.log("endpoint->>>>", req.params.x, req.params.y);
-    next();
-});
-app.all("/:x", (req, res, next) => {
-    console.log("endpoint->>>>", req.params.x);
-    next();
-});
+app.use(logRoute);
 
 app.use((req, res, next) => {
     res.setTimeout(25000, () => {
@@ -42,9 +28,9 @@ app.use((req, res, next) => {
     });
     if (app.locals?.db) next();
     else {
-        mongoDB.connect((error, db) => {
+        MongoDB.connect((error, db) => {
             if (db) app.locals.db = db;
-            else console.log("Unable to connect to DB");
+            else console.log("Unable to connect to DB", error);
             next();
         });
     }
@@ -53,7 +39,7 @@ app.use((req, res, next) => {
 app.use("/authenticate", authenticate);
 app.use("/meta", meta);
 
-app.use("/my", url);
+app.use("/my", url, details);
 app.use("/manage", manageShortURL);
 
 app.use("/password_for_protected_site", passwordProtection);
