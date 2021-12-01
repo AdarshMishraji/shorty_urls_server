@@ -10,7 +10,7 @@ exports.getURLs = (user, limit, skip, query, db) => {
     return new Promise(async (resolve, reject) => {
         if (db) {
             db.collection("shorten_urls")
-                .find({ uid: user.uid, ...(query ? { url: (await aesDecryptData(query)).value } : null) })
+                .find({ uid: user.uid })
                 .skip(skip ? parseInt(skip) : 0)
                 .limit(limit ? parseInt(limit) : Number.MAX_SAFE_INTEGER)
                 .toArray()

@@ -63,19 +63,19 @@ exports.getMetaData = async (data) => {
             links_added: res2,
             top_three: [
                 {
-                    url: data?.[0]?.url,
+                    url: data?.[0]?.url && (await aesDecryptData(data?.[0]?.url))?.value,
                     short_url: data?.[0]?.alias && process.env.OWN_URL_DEFAULT + (await aesDecryptData(data?.[0]?.alias))?.value,
-                    title: data[0]?.title,
+                    title: data[0]?.meta_data && JSON.parse((await aesDecryptData(data?.[0]?.meta_data))?.value)?.title,
                 },
                 {
-                    url: data?.[1]?.url,
+                    url: data?.[1]?.url && (await aesDecryptData(data?.[1]?.url))?.value,
                     short_url: data?.[1]?.alias && process.env.OWN_URL_DEFAULT + (await aesDecryptData(data?.[1]?.alias))?.value,
-                    title: data[1]?.title,
+                    title: data[1]?.meta_data && JSON.parse((await aesDecryptData(data?.[1]?.meta_data))?.value)?.title,
                 },
                 {
-                    url: data?.[2]?.url,
+                    url: data?.[2]?.url && (await aesDecryptData(data?.[2]?.url))?.value,
                     short_url: data?.[2]?.alias && process.env.OWN_URL_DEFAULT + (await aesDecryptData(data?.[2]?.alias))?.value,
-                    title: data[2]?.title,
+                    title: data[2]?.meta_data && JSON.parse((await aesDecryptData(data?.[2]?.meta_data))?.value)?.title,
                 },
             ],
         };
