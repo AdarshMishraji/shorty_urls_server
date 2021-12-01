@@ -1,6 +1,7 @@
 const express = require("express");
 const dotEnv = require("dotenv");
 
+const { validateAccess } = require("../middlewares");
 const { decodeJWT } = require("../helpers");
 const { authenticate } = require("../utils/auth");
 
@@ -8,20 +9,22 @@ dotEnv.config();
 
 const app = express.Router();
 
-app.post("/authenticate", (req, res) => {
-    const { authorization } = req.headers;
+app.use(validateAccess);
+
+app.post("/", (req, res) => {
     const { token } = req.body;
-    if (token) {
-        const user = decodeJWT(token);
-        if (authorization === process.env.AUTHORIZATION && user) {
+    try {
+        if (token) {
+            const user = decodeJWT(token);
             authenticate(user, req.app.locals.db)
-                .then(({ code, token }) => res.status(code).json({ token }))
+                .then(({ code, data }) => res.status(code).json(data))
                 .catch(({ code, error }) => res.status(code).json({ error }));
         } else {
-            res.status(401).json({ error: "Invalid Access." });
+            return res.status(401).json({ error: "Authorization Failed.", reason: "Token not available." });
         }
-    } else {
-        res.status(401).json({ error: "Authorization Failed." });
+    } catch (error) {
+        console.log(e);
+        return res.status(401).json({ error: "Authorization Failed.", reason: e });
     }
 });
 

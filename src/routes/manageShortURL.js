@@ -1,7 +1,7 @@
 const express = require("express");
 const dotEnv = require("dotenv");
 
-const { VerifyAndDecodeJWT } = require("../helpers");
+const { validateUser, validateAccess } = require("../middlewares");
 const {
     generateShortURL,
     changeAlias,
@@ -16,182 +16,87 @@ dotEnv.config();
 
 const app = express.Router();
 
+app.use(validateAccess);
+app.use(validateUser);
+
 app.post("/generate_short_url", (req, res) => {
-    const { authorization, accesstoken } = req.headers;
-    if (authorization === process.env.AUTHORIZATION) {
-        const { url } = req.body;
-        if (accesstoken) {
-            if (url.includes(process.env.OWN_URL_DEFAULT)) {
-                return res.status(405).json({ error: "It's already shortened." });
-            } else {
-                const user = VerifyAndDecodeJWT(accesstoken);
-                if (url) {
-                    if (user) {
-                        generateShortURL(user, url, req.app.locals.db)
-                            .then(({ code, data }) => res.status(code).json(data))
-                            .catch(({ code, error }) => res.status(code).json({ error }));
-                    } else {
-                        return res.status(400).json({ error: "Invalid User." });
-                    }
-                } else {
-                    return res.status(422).json({ error: "Not accepted empty url." });
-                }
-            }
-        } else {
-            return res.status(401).json({ error: "Invalid Access." });
-        }
+    const { url } = req.body;
+    if (url.includes(process.env.OWN_URL_DEFAULT)) {
+        return res.status(405).json({ error: "It's already shortened." });
     } else {
-        return res.status(401).json({ error: "Authorization Failed." });
+        if (url) {
+            generateShortURL(res.locals.user, url, req.app.locals.db)
+                .then(({ code, data }) => res.status(code).json(data))
+                .catch(({ code, error }) => res.status(code).json({ error }));
+        } else {
+            return res.status(422).json({ error: "Not accepted empty url." });
+        }
     }
 });
 
 app.patch("/change_alias", (req, res) => {
-    const { authorization, accesstoken } = req.headers;
-    if (authorization === process.env.AUTHORIZATION) {
-        const { urlID, alias } = req.body;
-        if (accesstoken) {
-            const user = VerifyAndDecodeJWT(accesstoken);
-            if (urlID) {
-                if (user) {
-                    changeAlias(user, urlID, alias, req.app.locals.db)
-                        .then(({ code, message }) => res.status(code).json({ message }))
-                        .catch(({ code, error }) => res.status(code).json({ error }));
-                } else {
-                    res.status(400).json({ error: "Invalid User." });
-                }
-            } else {
-                res.status(422).json({ error: "Invalid Data." });
-            }
-        } else {
-            res.status(401).json({ error: "Invalid Access." });
-        }
+    const { urlID, alias } = req.body;
+    if (urlID && alias) {
+        changeAlias(res.locals.user, urlID, alias, req.app.locals.db)
+            .then(({ code, message }) => res.status(code).json({ message }))
+            .catch(({ code, error }) => res.status(code).json({ error }));
     } else {
-        res.status(401).json({ error: "Authorization Failed." });
+        return res.status(422).json({ error: "Invalid Data." });
     }
 });
 
 app.delete("/delete_url", async (req, res) => {
-    const { authorization, accesstoken } = req.headers;
-    if (authorization === process.env.AUTHORIZATION) {
-        const { urlID } = req.body;
-        if (accesstoken) {
-            const user = VerifyAndDecodeJWT(accesstoken);
-            if (urlID) {
-                if (user) {
-                    deleteURL(user, urlID, req.app.locals.db)
-                        .then(({ code, message }) => res.status(code).json({ message }))
-                        .catch(({ code, error }) => res.status(code).json({ error }));
-                } else {
-                    res.status(400).json({ error: "Invalid User." });
-                }
-            } else {
-                res.status(422).json({ error: "Invalid Data." });
-            }
-        } else {
-            res.status(401).json({ error: "Invalid Access." });
-        }
+    const { urlID } = req.body;
+    if (urlID) {
+        deleteURL(res.locals.user, urlID, req.app.locals.db)
+            .then(({ code, message }) => res.status(code).json({ message }))
+            .catch(({ code, error }) => res.status(code).json({ error }));
     } else {
-        res.status(401).json({ error: "Authorization Failed." });
+        return res.status(422).json({ error: "Invalid Data." });
     }
 });
 
 app.patch("/update_url_status", (req, res) => {
-    const { authorization, accesstoken } = req.headers;
-    if (authorization === process.env.AUTHORIZATION) {
-        const { urlID, status } = req.body;
-        if (accesstoken) {
-            const user = VerifyAndDecodeJWT(accesstoken);
-            if (urlID) {
-                if (user) {
-                    updateURLStatus(user, urlID, status, req.app.locals.db)
-                        .then(({ code, message }) => res.status(code).json({ message }))
-                        .catch(({ code, error }) => res.status(code).json({ error }));
-                } else {
-                    res.status(400).json({ error: "Invalid User." });
-                }
-            } else {
-                res.status(422).json({ error: "Invalid Data." });
-            }
-        } else {
-            res.status(401).json({ error: "Invalid Access." });
-        }
+    const { urlID, status } = req.body;
+    if (urlID) {
+        updateURLStatus(res.locals.user, urlID, status, req.app.locals.db)
+            .then(({ code, message }) => res.status(code).json({ message }))
+            .catch(({ code, error }) => res.status(code).json({ error }));
     } else {
-        res.status(401).json({ error: "Authorization Failed." });
+        return res.status(422).json({ error: "Invalid Data." });
     }
 });
 
 app.patch("/set_expiration_time", (req, res) => {
-    const { authorization, accesstoken } = req.headers;
-    if (authorization === process.env.AUTHORIZATION) {
-        const { urlID, expired_at } = req.body;
-        if (accesstoken) {
-            const user = VerifyAndDecodeJWT(accesstoken);
-            if (urlID) {
-                if (user) {
-                    setExpirationTime(user, urlID, expired_at, req.app.locals.db)
-                        .then(({ code, message }) => res.status(code).json({ message }))
-                        .catch(({ code, error }) => res.status(code).json({ error }));
-                } else {
-                    res.status(400).json({ error: "Invalid User." });
-                }
-            } else {
-                res.status(422).json({ error: "Invalid Data." });
-            }
-        } else {
-            res.status(401).json({ error: "Invalid Access." });
-        }
+    const { urlID, expired_at } = req.body;
+    if (urlID) {
+        setExpirationTime(res.locals.user, urlID, expired_at, req.app.locals.db)
+            .then(({ code, message }) => res.status(code).json({ message }))
+            .catch(({ code, error }) => res.status(code).json({ error }));
     } else {
-        res.status(401).json({ error: "Authorization Failed." });
+        return res.status(422).json({ error: "Invalid Data." });
     }
 });
 
 app.patch("/update_password", (req, res) => {
-    const { authorization, accesstoken } = req.headers;
-    if (authorization === process.env.AUTHORIZATION) {
-        const { urlID, password } = req.body;
-        if (accesstoken) {
-            const user = VerifyAndDecodeJWT(accesstoken);
-            if (urlID && password) {
-                if (user) {
-                    updatePassword(user, urlID, password, req.app.locals.db)
-                        .then(({ code, message }) => res.status(code).json({ message }))
-                        .catch(({ code, error }) => res.status(code).json({ error }));
-                } else {
-                    res.status(400).json({ error: "Invalid User." });
-                }
-            } else {
-                res.status(422).json({ error: "Invalid Data." });
-            }
-        } else {
-            res.status(401).json({ error: "Invalid Access." });
-        }
+    const { urlID, password } = req.body;
+    if (urlID && password) {
+        updatePassword(res.locals.user, urlID, password, req.app.locals.db)
+            .then(({ code, message }) => res.status(code).json({ message }))
+            .catch(({ code, error }) => res.status(code).json({ error }));
     } else {
-        res.status(401).json({ error: "Authorization Failed." });
+        return res.status(422).json({ error: "Invalid Data." });
     }
 });
 
 app.delete("/remove_password", (req, res) => {
-    const { authorization, accesstoken } = req.headers;
-    if (authorization === process.env.AUTHORIZATION) {
-        const { urlID } = req.body;
-        if (accesstoken) {
-            const user = VerifyAndDecodeJWT(accesstoken);
-            if (urlID) {
-                if (user) {
-                    removePassword(user, urlID, req.app.locals.db)
-                        .then(({ code, message }) => res.status(code).json({ message }))
-                        .catch(({ code, error }) => res.status(code).json({ error }));
-                } else {
-                    res.status(400).json({ error: "Invalid User." });
-                }
-            } else {
-                res.status(422).json({ error: "Invalid Data." });
-            }
-        } else {
-            res.status(401).json({ error: "Invalid Access." });
-        }
+    const { urlID } = req.body;
+    if (urlID) {
+        removePassword(res.locals.user, urlID, req.app.locals.db)
+            .then(({ code, message }) => res.status(code).json({ message }))
+            .catch(({ code, error }) => res.status(code).json({ error }));
     } else {
-        res.status(401).json({ error: "Authorization Failed." });
+        return res.status(422).json({ error: "Invalid Data." });
     }
 });
 

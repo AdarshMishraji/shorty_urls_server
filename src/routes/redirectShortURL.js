@@ -2,7 +2,7 @@ const path = require("path");
 const express = require("express");
 const dotEnv = require("dotenv");
 
-const { aesEncryptData } = require("../helpers");
+const { aesEncryptData, hashData, aesDecryptData } = require("../helpers");
 const { updateClick } = require("../utils/redirect");
 const { findOne } = require("../utils");
 
@@ -12,17 +12,19 @@ const app = express.Router();
 
 app.use(express.static(path.join(__dirname, "../../public/")));
 
-app.get("/:url", (req, res) => {
+app.get("/:url", async (req, res) => {
     const { url } = req.params;
-    findOne({ alias: url }, req.app.locals.db)
-        .then((value) => {
+    const hashed_alias = (await hashData(url)).hashed_data;
+    findOne({ hashed_alias }, req.app.locals.db)
+        .then(async (value) => {
             if (value) {
                 if (value?.is_active) {
                     if (!value.expired_at || value?.expired_at > Date.now()) {
+                        const actual_url = (await aesDecryptData(value.url)).value;
                         if (value?.protection?.password) {
                             aesEncryptData(
                                 JSON.stringify({
-                                    url,
+                                    url: hashed_alias,
                                     auth: process.env.AUTHORIZATION,
                                     actual_password: value.protection.password,
                                 })
@@ -31,8 +33,9 @@ app.get("/:url", (req, res) => {
                                     return res.status(200).render("passwordEntry", {
                                         key,
                                         created_at: Date.now(),
-                                        url: value.url,
-                                        short_url: process.env.OWN_URL_DEFAULT + url,
+                                        url: actual_url,
+                                        base_URL: process.env.OWN_URL_DEFAULT,
+                                        alias: url,
                                     });
                                 })
                                 .catch((e) => {
@@ -41,8 +44,8 @@ app.get("/:url", (req, res) => {
                                 });
                         } else {
                             const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
-                            updateClick(ip, url, req.header("user-agent"), req.app.locals.db)
-                                .then(({ code }) => res.status(code).redirect(`${value.url}`))
+                            updateClick(ip, hashed_alias, req.header("user-agent"), req.app.locals.db)
+                                .then(({ code }) => res.status(code).redirect(actual_url))
                                 .catch(({ code, error }) => {
                                     console.log(error);
                                     return res.status(code).render("InternalError");
