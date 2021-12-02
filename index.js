@@ -7,6 +7,7 @@ require("ejs");
 const MongoDB = require("./src/mongoDBConfig");
 const { authenticate, meta, passwordProtection, redirectShortURL, manageShortURL, url, details } = require("./src/routes");
 const { logRoute } = require("./src/middlewares");
+const rateLimit = require("express-rate-limit");
 
 dotEnv.config();
 
@@ -20,6 +21,15 @@ app.use(express.static(path.join(__dirname, "../public/")));
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
+app.use(
+    rateLimit({
+        handler: (req, res, next) => {
+            return res.status(429).json({ error: "Server is busy, please try again after sometimes." });
+        },
+        windowMs: 60000,
+        max: 10,
+    })
+);
 app.use(logRoute);
 
 app.use((req, res, next) => {
