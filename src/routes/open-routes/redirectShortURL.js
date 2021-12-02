@@ -9,7 +9,7 @@ dotEnv.config();
 
 const app = express.Router();
 
-app.use(express.static(path.join(__dirname, "../../public/")));
+app.use(express.static(path.join(__dirname, "../../../public/")));
 
 app.get("/:url", async (req, res) => {
     const { url } = req.params;

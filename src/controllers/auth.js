@@ -21,9 +21,9 @@ exports.authenticate = (user, db) => {
                                 if (val.modifiedCount > 0) {
                                     const data = {
                                         ...value,
-                                        name: (await aesDecryptData(user?.name)).value,
-                                        email: (await aesDecryptData(user?.email)).value,
-                                        profile_img: (await aesDecryptData(user?.profile_img)).value,
+                                        name: (await aesDecryptData(value?.name)).value,
+                                        email: (await aesDecryptData(value?.email)).value,
+                                        profile_img: (await aesDecryptData(value?.profile_img)).value,
                                     };
                                     delete data?.email_hash;
                                     const new_token = jwt.sign(
@@ -45,7 +45,7 @@ exports.authenticate = (user, db) => {
                     } else {
                         const dataToClient = {
                             uid: uuidv4(),
-                            name: user?.given_name + user?.family_name,
+                            name: user?.given_name + " " + user?.family_name,
                             email: user?.email,
                             email_verified: user?.email_verified,
                             locale: user?.locale,
