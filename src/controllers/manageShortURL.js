@@ -64,19 +64,19 @@ exports.generateShortURL = (user, url, db) => {
                                         });
                                     } else {
                                         return reject({
-                                            code: 404,
+                                            code: 204,
                                             error: "Nothing has Changed.",
                                         });
                                     }
                                 })
-                                .catch(({ error }) => reject({ code: 500, error }));
+                                .catch(({ error }) => reject({ code: 500, error: "Internal Error", reason: error }));
                         })
                         .catch((e) => {
-                            return reject({ code: 400, error: "Invalid URL." });
+                            return reject({ code: 400, error: "Invalid URL.", reason: e });
                         });
                 }
             })
-            .catch((error) => reject({ code: 500, error }));
+            .catch(({ error }) => reject({ code: 500, error: "Internal Error", reason: error }));
     });
 };
 
@@ -98,13 +98,13 @@ exports.changeAlias = (user, urlID, alias, db) => {
                             if (modifiedCount > 0) {
                                 return resolve({ code: 200, message: "OK" });
                             } else {
-                                return reject({ code: 404, error: "Nothing has Changed." });
+                                return reject({ code: 204, error: "Nothing has Changed." });
                             }
                         })
-                        .catch(({ error }) => reject({ code: 500, error }));
+                        .catch(({ error }) => reject({ code: 500, error: "Internal Error", reason: error }));
                 }
             })
-            .catch(({ error }) => reject({ code: 500, error }));
+            .catch(({ error }) => reject({ code: 500, error: "Internal Error", reason: error }));
     });
 };
 
@@ -115,10 +115,10 @@ exports.deleteURL = (user, urlID, db) => {
                 if (deletedCount > 0) {
                     return resolve({ code: 200, message: "OK" });
                 } else {
-                    return reject({ code: 404, error: "URL not found" });
+                    return reject({ code: 204, error: "URL not found" });
                 }
             })
-            .catch(({ error }) => reject({ code: 500, error }));
+            .catch(({ error }) => reject({ code: 500, error: "Internal Error", reason: error }));
     });
 };
 
@@ -129,10 +129,10 @@ exports.updateURLStatus = (user, urlID, status, db) => {
                 if (modifiedCount > 0) {
                     return resolve({ code: 200, message: "OK" });
                 } else {
-                    return reject({ code: 404, error: "Nothing has Changed." });
+                    return reject({ code: 204, error: "Nothing has Changed." });
                 }
             })
-            .catch(({ error }) => reject({ code: 500, error }));
+            .catch(({ error }) => reject({ code: 500, error: "Internal Error", reason: error }));
     });
 };
 
@@ -144,10 +144,10 @@ exports.setExpirationTime = (user, urlID, expired_at, db) => {
                     if (modifiedCount > 0) {
                         return resolve({ code: 200, message: "OK" });
                     } else {
-                        return reject({ code: 404, error: "Nothing has Changed." });
+                        return reject({ code: 204, error: "Nothing has Changed." });
                     }
                 })
-                .catch(({ error }) => reject({ code: 500, error }));
+                .catch(({ error }) => reject({ code: 500, error: "Internal Error", reason: error }));
         else reject({ code: 400, error: "Expiration time must be of future" });
     });
 };
@@ -164,10 +164,10 @@ exports.updatePassword = (user, urlID, password, db) => {
                 if (modifiedCount > 0) {
                     return resolve({ code: 200, message: "OK" });
                 } else {
-                    return reject({ code: 404, error: "Nothing has Changed." });
+                    return reject({ code: 204, error: "Nothing has Changed." });
                 }
             })
-            .catch(({ error }) => reject({ code: 500, error }));
+            .catch(({ error }) => reject({ code: 500, error: "Internal Error", reason: error }));
     });
 };
 
@@ -178,9 +178,9 @@ exports.removePassword = (user, urlID, db) => {
                 if (modifiedCount > 0) {
                     return resolve({ code: 200, message: "OK" });
                 } else {
-                    return reject({ code: 404, error: "Nothing has Changed." });
+                    return reject({ code: 204, error: "Nothing has Changed." });
                 }
             })
-            .catch(({ error }) => reject({ code: 500, error }));
+            .catch(({ error }) => reject({ code: 500, error: "Internal Error", reason: error }));
     });
 };

@@ -19,7 +19,7 @@ app.post("/generate_short_url", (req, res) => {
         if (url) {
             generateShortURL(res.locals.user, url, req.app.locals.db)
                 .then(({ code, data }) => res.status(code).json(data))
-                .catch(({ code, error }) => res.status(code).json({ error }));
+                .catch(({ code, error, reason = "" }) => res.status(code).json({ error, reason }));
         } else {
             return res.status(422).json({ error: "Not accepted empty url." });
         }
@@ -31,7 +31,7 @@ app.patch("/change_alias", (req, res) => {
     if (urlID && alias) {
         changeAlias(res.locals.user, urlID, alias, req.app.locals.db)
             .then(({ code, message }) => res.status(code).json({ message }))
-            .catch(({ code, error }) => res.status(code).json({ error }));
+            .catch(({ code, error, reason = "" }) => res.status(code).json({ error, reason }));
     } else {
         return res.status(422).json({ error: "Invalid Data." });
     }
@@ -42,7 +42,7 @@ app.delete("/delete_url", async (req, res) => {
     if (urlID) {
         deleteURL(res.locals.user, urlID, req.app.locals.db)
             .then(({ code, message }) => res.status(code).json({ message }))
-            .catch(({ code, error }) => res.status(code).json({ error }));
+            .catch(({ code, error, reason = "" }) => res.status(code).json({ error, reason }));
     } else {
         return res.status(422).json({ error: "Invalid Data." });
     }
@@ -53,7 +53,7 @@ app.patch("/update_url_status", (req, res) => {
     if (urlID) {
         updateURLStatus(res.locals.user, urlID, status, req.app.locals.db)
             .then(({ code, message }) => res.status(code).json({ message }))
-            .catch(({ code, error }) => res.status(code).json({ error }));
+            .catch(({ code, error, reason = "" }) => res.status(code).json({ error, reason }));
     } else {
         return res.status(422).json({ error: "Invalid Data." });
     }
@@ -64,7 +64,7 @@ app.patch("/set_expiration_time", (req, res) => {
     if (urlID) {
         setExpirationTime(res.locals.user, urlID, expired_at, req.app.locals.db)
             .then(({ code, message }) => res.status(code).json({ message }))
-            .catch(({ code, error }) => res.status(code).json({ error }));
+            .catch(({ code, error, reason = "" }) => res.status(code).json({ error, reason }));
     } else {
         return res.status(422).json({ error: "Invalid Data." });
     }
@@ -75,7 +75,7 @@ app.patch("/update_password", (req, res) => {
     if (urlID && password) {
         updatePassword(res.locals.user, urlID, password, req.app.locals.db)
             .then(({ code, message }) => res.status(code).json({ message }))
-            .catch(({ code, error }) => res.status(code).json({ error }));
+            .catch(({ code, error, reason = "" }) => res.status(code).json({ error, reason }));
     } else {
         return res.status(422).json({ error: "Invalid Data." });
     }
@@ -86,7 +86,7 @@ app.delete("/remove_password", (req, res) => {
     if (urlID) {
         removePassword(res.locals.user, urlID, req.app.locals.db)
             .then(({ code, message }) => res.status(code).json({ message }))
-            .catch(({ code, error }) => res.status(code).json({ error }));
+            .catch(({ code, error, reason = "" }) => res.status(code).json({ error, reason }));
     } else {
         return res.status(422).json({ error: "Invalid Data." });
     }

@@ -1,7 +1,7 @@
 const { OAuth2Client } = require("google-auth-library");
 const dotenv = require("dotenv");
 
-const { verifyAndDecodeJWT } = require("../helpers");
+const { verifyAndDecodeJWT, fetchGeoData } = require("../helpers");
 
 dotenv.config();
 
@@ -53,5 +53,20 @@ exports.validateAuthToken = (req, res, next) => {
 
 exports.logRoute = (req, res, next) => {
     console.log("route->>>>>>", req.path);
+    next();
+};
+
+exports.trackUserGeoData = (req, res, next) => {
+    const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+    fetchGeoData(ip, (data) => {
+        res.locals.geo_data = data;
+        res.locals.ip = ip;
+        next();
+    });
+};
+
+exports.fetchUserAgent = (req, res, next) => {
+    const user_agent = req.header("user-agent");
+    res.locals.user_agent = user_agent;
     next();
 };

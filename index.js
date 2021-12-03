@@ -2,12 +2,13 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const dotEnv = require("dotenv");
+const rateLimit = require("express-rate-limit");
+const compression = require("compression");
 require("ejs");
 
-const MongoDB = require("./src/mongoDBConfig");
+const MongoDB = require("./src/configs/mongoDBConfig");
 const { authenticate, meta, passwordProtection, redirectShortURL, manageShortURL, url, details } = require("./src/routes");
 const { logRoute } = require("./src/middlewares");
-const rateLimit = require("express-rate-limit");
 
 dotEnv.config();
 
@@ -16,6 +17,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(compression());
 app.use(express.static(path.join(__dirname, "../public/")));
 
 app.set("views", path.join(__dirname, "views"));
@@ -27,14 +29,14 @@ app.use(
             return res.status(429).json({ error: "Server is busy, please try again after sometimes." });
         },
         windowMs: 60000,
-        max: 10,
+        max: 60,
     })
 );
 app.use(logRoute);
 
 app.use((req, res, next) => {
     res.setTimeout(25000, () => {
-        return res.status(500).json({ error: "Server Timeout", reason: "Internal Error" });
+        return res.status(408).json({ error: "Server Timeout", reason: "Internal Error" });
     });
     if (app.locals?.db) next();
     else {

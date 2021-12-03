@@ -49,8 +49,7 @@ exports.getURLs = (user, limit, skip, query, db) => {
                     });
                 })
                 .catch((e) => {
-                    console.log("Error while fetching history", e);
-                    return reject({ code: 500, error: "Error while fetching history." });
+                    return reject({ code: 500, error: "Error while fetching history.", reason: e });
                 });
         } else {
             return reject({ code: 500, error: "Unable to connect to DB." });
@@ -58,39 +57,43 @@ exports.getURLs = (user, limit, skip, query, db) => {
     });
 };
 
-exports.urlData = (user, urlID, db) => {
+exports.urlData = (user, geo_data, urlID, db) => {
     return new Promise(async (resolve, reject) => {
         findOne({ uid: user.uid, _id: ObjectID(urlID) }, db)
             .then(async (value) => {
-                const { meta, decrypted_from_visited } = await getMetaDataOfAURL(value?.from_visited);
-                const data = {
-                    info: {
-                        ...value,
-                        url: value?.url && (await aesDecryptData(value?.url)).value,
-                        meta_data: value?.meta_data && JSON.parse((await aesDecryptData(value?.meta_data)).value),
-                        from_visited: decrypted_from_visited,
-                        is_password_protected: Boolean(value?.protection?.password),
-                        short_url: value?.alias && process.env.OWN_URL_DEFAULT + (await aesDecryptData(value?.alias)).value,
-                    },
-                    meta,
-                };
-                delete data?.info?.hashed_url;
-                delete data?.info?.hashed_alias;
-                delete data?.info?.alias;
-                delete data?.info?.protection;
+                if (value) {
+                    const { meta, decrypted_from_visited } = await getMetaDataOfAURL(value?.from_visited, geo_data?.timezone);
+                    const data = {
+                        info: {
+                            ...value,
+                            url: value?.url && (await aesDecryptData(value?.url)).value,
+                            meta_data: value?.meta_data && JSON.parse((await aesDecryptData(value?.meta_data)).value),
+                            from_visited: decrypted_from_visited,
+                            is_password_protected: Boolean(value?.protection?.password),
+                            short_url: value?.alias && process.env.OWN_URL_DEFAULT + (await aesDecryptData(value?.alias)).value,
+                        },
+                        meta,
+                    };
+                    delete data?.info?.hashed_url;
+                    delete data?.info?.hashed_alias;
+                    delete data?.info?.alias;
+                    delete data?.info?.protection;
 
-                return resolve({
-                    code: 200,
-                    data,
-                });
+                    return resolve({
+                        code: 200,
+                        data,
+                    });
+                } else {
+                    return resolve({ code: 404, error: "URL not found." });
+                }
             })
             .catch(({ error }) => {
-                return reject({ code: 500, error });
+                return reject({ code: 500, error: "Internal Error", reason: error });
             });
     });
 };
 
-exports.getMeta = (withoutAuth, user, db) => {
+exports.getMeta = (withoutAuth, geo_data, user, db) => {
     return new Promise(async (resolve, reject) => {
         if (db) {
             db.collection("shorten_urls")
@@ -98,7 +101,7 @@ exports.getMeta = (withoutAuth, user, db) => {
                 .sort({ num_of_visits: -1 })
                 .toArray()
                 .then(async (result) => {
-                    const metaData = await getMetaData(result);
+                    const metaData = await getMetaData(result, geo_data?.timezone);
                     return resolve({
                         code: 200,
                         data: {
@@ -111,8 +114,7 @@ exports.getMeta = (withoutAuth, user, db) => {
                     });
                 })
                 .catch((e) => {
-                    console.log(e);
-                    return reject({ code: 500, error: "Unable to fetch meta data." });
+                    return reject({ code: 500, error: "Unable to fetch meta data.", reason: e });
                 });
         } else {
             return reject({ code: 500, error: "Unable to connect to DB." });

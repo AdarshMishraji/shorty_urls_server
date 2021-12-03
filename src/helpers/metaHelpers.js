@@ -1,53 +1,45 @@
+const moment = require("moment-timezone");
+
 const { aesDecryptData } = require("./generalHelpers");
 
-const noMonths = {
-    1: "January",
-    2: "February",
-    3: "March",
-    4: "April",
-    5: "May",
-    6: "June",
-    7: "July",
-    8: "August",
-    9: "September",
-    10: "October",
-    11: "November",
-    12: "December",
-};
-exports.getMetaData = async (data) => {
+exports.getMetaData = async (data, timezone) => {
     if (data.length) {
         let count = 0;
         const res1 = {};
         const res2 = {};
         for (let i = 0; i < data.length; i++) {
-            const month = data[i].created_at.substr(5, 2);
-            const year = data[i].created_at.substr(0, 4);
+            let date = timezone ? moment(data[i].created_at).tz(timezone).format("YYYY-MMMM-DD") : moment(data[i].created_at).format("YYYY-MMMM-DD");
+            const [year, month] = date.split("-");
             count += data[i].num_of_visits;
             if (res2[year]) {
                 res2[year].count += 1;
-                if (res2[year][noMonths[month]]) {
-                    res2[year][noMonths[month]].count += 1;
+                if (res2[year][month]) {
+                    res2[year][month].count += 1;
                 } else {
-                    res2[year][noMonths[month]] = { count: 1 };
+                    res2[year][month] = { count: 1 };
                 }
             } else {
-                res2[year] = { count: 1, [noMonths[month]]: { count: 1 } };
+                res2[year] = { count: 1, [month]: { count: 1 } };
             }
             if (data[i].from_visited) {
                 for (let j = 0; j < data[i].from_visited.length; j++) {
-                    const currMonth = data[i].from_visited[j].requested_at.substr(5, 2);
-                    const currYear = data[i].from_visited[j].requested_at.substr(0, 4);
-                    const currDate = data[i].from_visited[j].requested_at.substr(8, 2);
-                    if (res1[currYear] && res1[currYear][noMonths[currMonth]]) {
+                    let curr_date = timezone
+                        ? moment(data[i].from_visited[j].requested_at)
+                              .tz(timezone || null)
+                              .format("YYYY-MMMM-DD")
+                        : moment(data[i].from_visited[j].requested_at).format("YYYY-MMMM-DD");
+
+                    const [currYear, currMonth, currDay] = curr_date.split("-");
+                    if (res1[currYear] && res1[currYear][currMonth]) {
                         res1[currYear].count += 1;
-                        res1[currYear][noMonths[currMonth]].count += 1;
-                        if (res1[currYear][noMonths[currMonth]][currDate]) {
-                            res1[currYear][noMonths[currMonth]][currDate] += 1;
+                        res1[currYear][currMonth].count += 1;
+                        if (res1[currYear][currMonth][currDay]) {
+                            res1[currYear][currMonth][currDay] += 1;
                         } else {
-                            res1[currYear][noMonths[currMonth]] = { ...res1[currYear][noMonths[currMonth]], [currDate]: 1 };
+                            res1[currYear][currMonth] = { ...res1[currYear][currMonth], [currDay]: 1 };
                         }
                     } else {
-                        res1[currYear] = { count: 1, [noMonths[currMonth]]: { count: 1, [currDate]: 1 } };
+                        res1[currYear] = { count: 1, [currMonth]: { count: 1, [currDay]: 1 } };
                     }
                     prevMonth = currMonth;
                 }
@@ -85,42 +77,45 @@ exports.getMetaData = async (data) => {
     }
 };
 
-exports.getMetaDataOfAURL = async (data) => {
+exports.getMetaDataOfAURL = async (data, timezone) => {
     if (data) {
         const year_month_day_click = {};
         const browser_clicks = {};
         const os_clicks = {};
         const device_clicks = {};
         const country_clicks = {};
-
         const decrypted_from_visited = [];
         try {
             for (let j = 0; j < data.length; j++) {
                 const client_info = data[j]?.client_info && JSON.parse((await aesDecryptData(data[j]?.client_info))?.value);
                 const location = data[j]?.location && JSON.parse((await aesDecryptData(data[j]?.location))?.value);
                 decrypted_from_visited.push({ ...data[j], client_info, location, ip: (await aesDecryptData(data[j]?.ip))?.value });
-                let currMonth = data[j].requested_at.substr(5, 2);
-                let currYear = data[j].requested_at.substr(0, 4);
-                let currDate = data[j].requested_at.substr(8, 2);
+
+                let date = timezone
+                    ? moment(data[j].requested_at)
+                          .tz(timezone || null)
+                          .format("YYYY-MMMM-DD")
+                    : moment(data[j].requested_at).format("YYYY-MMMM-DD");
+                const [currYear, currMonth, currDay] = date.split("-");
                 let client_name = client_info?.client_name;
                 let client_OS = client_info?.OS;
                 let device_type = client_info?.device_type;
                 let country = location?.country;
                 let city = location?.city;
 
-                if (year_month_day_click[currYear] && year_month_day_click[currYear][noMonths[currMonth]]) {
+                if (year_month_day_click[currYear] && year_month_day_click[currYear][currMonth]) {
                     year_month_day_click[currYear].count += 1;
-                    year_month_day_click[currYear][noMonths[currMonth]].count += 1;
-                    if (year_month_day_click[currYear][noMonths[currMonth]][currDate]) {
-                        year_month_day_click[currYear][noMonths[currMonth]][currDate] += 1;
+                    year_month_day_click[currYear][currMonth].count += 1;
+                    if (year_month_day_click[currYear][currMonth][currDay]) {
+                        year_month_day_click[currYear][currMonth][currDay] += 1;
                     } else {
-                        year_month_day_click[currYear][noMonths[currMonth]] = {
-                            ...year_month_day_click[currYear][noMonths[currMonth]],
-                            [currDate]: 1,
+                        year_month_day_click[currYear][currMonth] = {
+                            ...year_month_day_click[currYear][currMonth],
+                            [currDay]: 1,
                         };
                     }
                 } else {
-                    year_month_day_click[currYear] = { count: 1, [noMonths[currMonth]]: { count: 1, [currDate]: 1 } };
+                    year_month_day_click[currYear] = { count: 1, [currMonth]: { count: 1, [currDay]: 1 } };
                 }
 
                 if (client_name) {

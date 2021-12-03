@@ -13,7 +13,7 @@ app.use(validateUser);
 app.get("/details", (req, res) => {
     myDetails(res.locals.user, req.app.locals.db)
         .then(({ code, data }) => res.status(code).json(data))
-        .catch(({ code, error }) => res.status(code).json({ error }));
+        .catch(({ code, error, reason = "" }) => res.status(code).json({ error, reason }));
 });
 
 exports.details = app;

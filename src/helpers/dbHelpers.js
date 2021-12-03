@@ -1,7 +1,7 @@
-exports.insertOne = (value, db) => {
+exports.insertOne = (value, db, collection = "shorten_urls") => {
     return new Promise((resolve, reject) => {
         if (db) {
-            db.collection("shorten_urls")
+            db.collection(collection)
                 .insertOne(value)
                 .then((value) => {
                     return resolve({ insertedCount: value.insertedCount });
@@ -15,10 +15,10 @@ exports.insertOne = (value, db) => {
     });
 };
 
-exports.findOne = (query, db) => {
+exports.findOne = (query, db, collection = "shorten_urls") => {
     return new Promise((resolve, reject) => {
         if (db) {
-            db.collection("shorten_urls")
+            db.collection(collection)
                 .findOne(query)
                 .then((value) => {
                     return resolve(value);
@@ -32,10 +32,10 @@ exports.findOne = (query, db) => {
     });
 };
 
-exports.updateOne = (query, value, db) => {
+exports.updateOne = (query, value, db, collection = "shorten_urls") => {
     return new Promise((resolve, reject) => {
         if (db) {
-            db.collection("shorten_urls")
+            db.collection(collection)
                 .updateOne(query, value)
                 .then((value) => {
                     return resolve({ modifiedCount: value.modifiedCount });
@@ -49,10 +49,10 @@ exports.updateOne = (query, value, db) => {
     });
 };
 
-exports.deleteOne = (query, db) => {
+exports.deleteOne = (query, db, collection = "shorten_urls") => {
     return new Promise((resolve, reject) => {
         if (db) {
-            db.collection("shorten_urls")
+            db.collection(collection)
                 .deleteOne(query)
                 .then((value) => {
                     return resolve({ deletedCount: value.deletedCount });
