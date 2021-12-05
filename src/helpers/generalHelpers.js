@@ -5,8 +5,13 @@ const DeviceDetector = require("device-detector-js");
 dotEnv.config();
 
 exports.verifyAndDecodeJWT = (token) => {
-    if (token) return jwt.verify(token, process.env.SECRET);
-    return null;
+    try {
+        if (token) return jwt.verify(token, process.env.SECRET);
+        return null;
+    } catch (e) {
+        if (e.name === "TokenExpiredError") return "TokenExpiredError";
+        else return null;
+    }
 };
 
 exports.getClientData = (device) => {

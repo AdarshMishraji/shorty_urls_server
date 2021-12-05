@@ -10,18 +10,16 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 exports.validateUser = (req, res, next) => {
     try {
         const { access_token } = req.headers;
-        const decoded_user = verifyAndDecodeJWT(access_token);
-        if (decoded_user) {
-            if (Math.floor(Date.now() / 1000) >= decoded_user.exp) {
-                return res.status(401).json({ error: "Unauthorized User.", reason: "Token Expired." });
-            }
-            res.locals.user = decoded_user;
+        const response = verifyAndDecodeJWT(access_token);
+        if (response === "TokenExpiredError") return res.status(401).json({ error: "Unauthorized User.", reason: "Token Expired." });
+        if (response) {
+            res.locals.user = response;
             next();
         } else {
-            return res.status(400).json({ error: "Invalid User." });
+            return res.status(401).json({ error: "Invalid User." });
         }
     } catch (e) {
-        return res.status(400).json({ error: "Invalid Access.", reason: JSON.stringify(e) });
+        return res.status(401).json({ error: "Invalid Access.", reason: JSON.stringify(e) });
     }
 };
 
