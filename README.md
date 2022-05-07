@@ -1,7 +1,8 @@
 # Shorty URLs API
 
 ## Powered by
-* Express (Server)
+* Node JS
+* Express JS (Server)
 * Mongo DB (Database)
 
 ## Hosted at: https://shorty--urls-server.herokuapp.com/
